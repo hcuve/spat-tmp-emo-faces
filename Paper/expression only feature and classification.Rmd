@@ -164,15 +164,28 @@ fit NMF on train set
 ```{r}
 require(NMF)
 colnames(df_OF_output_AUsW_unblind_posed_binned_train)
+col_names_aus_4nmf
 unique(df_OF_output_AUsW_unblind_posed_binned_train$expression)
 
 set.seed(123456)
 
-saveRDS(df_OF_output_AUsW_unblind_posed_binned_train[,16:32],
-        "dta_expr_only_4nmf_train.rds")
+# col_names_aus_4nmf - use thios to include some attributes to the data
+colnames(df_OF_output_AUsW_unblind_posed_binned_train[,col_names_aus_4nmf])
 
-saveRDS(df_OF_output_AUsW_unblind_posed_binned_test[,16:32],
-        "dta_expr_only_4nmf_test.rds")
+saveRDS(df_OF_output_AUsW_unblind_posed_binned_train[,col_names_aus_4nmf],
+        
+         file.path(paths$export_data, 
+                  "dta_expr_only_4nmf_train.rds"))
+
+
+        
+saveRDS(df_OF_output_AUsW_unblind_posed_binned_test[,col_names_aus_4nmf],
+                 file.path(paths$export_data, 
+                  "dta_expr_only_4nmf_test.rds"))
+
+# dta_expr_only_4nmf_train.rds - data used for fitting a separate NMF model ona train set
+# dta_expr_only_4nmf_test.rds - data used for projecting test set NMF
+        
 
 
 res_k3_pos_train <- NMF::nmf(df_OF_output_AUsW_unblind_posed_binned_train[,16:32]+.0001, 
@@ -184,6 +197,8 @@ res_k3_pos_train <- NMF::nmf(df_OF_output_AUsW_unblind_posed_binned_train[,16:32
 
 
 saveRDS(res_k3_pos_train, file.path(paths$export_models, "mod_rslt_nmfposed_train.Rds"))
+
+# mod_rslt_nmfposed_train.Rds object with results of NMF fitted only on train expression data
 
 
 
@@ -225,6 +240,7 @@ res_k3_pos_test_proje<- nmf(df_OF_output_AUsW_unblind_posed_binned_test[,16:32]+
 
 
 saveRDS(res_k3_pos_test_proje, file.path(paths$export_models, "mod_rslt_nmfposed_test_projection.Rds"))
+# mod_rslt_nmfposed_test_projection.Rds result of projection of test set to NMF model trained on train data only for expression condition
 
 
 
@@ -578,14 +594,38 @@ df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2
 unique(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2$filename)
 
 
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2)
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,c(1:5,7:107)])
 
 
-colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,8:107])
-save
+df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2
+saveRDS(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,c(1:5,7:107)], file.path(paths$export_data, "dta_pos_4_cmfts.rds"))
 
-
-
-saveRDS(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,8:107], file.path(paths$export_data, "dta_pos_4_cmfts.rds"))
+# dta_pos_4_cmfts.rds expression only dataset to run the multivariate timeseries extraction on
+# colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,c(1:5,7:107)])
+#   [1] "time_unq"   "filename"   "train_test" "subject"    "expression"
+#   [6] "nm_comp"    "t_1"        "t_2"        "t_3"        "t_4"       
+#  [11] "t_5"        "t_6"        "t_7"        "t_8"        "t_9"       
+#  [16] "t_10"       "t_11"       "t_12"       "t_13"       "t_14"      
+#  [21] "t_15"       "t_16"       "t_17"       "t_18"       "t_19"      
+#  [26] "t_20"       "t_21"       "t_22"       "t_23"       "t_24"      
+#  [31] "t_25"       "t_26"       "t_27"       "t_28"       "t_29"      
+#  [36] "t_30"       "t_31"       "t_32"       "t_33"       "t_34"      
+#  [41] "t_35"       "t_36"       "t_37"       "t_38"       "t_39"      
+#  [46] "t_40"       "t_41"       "t_42"       "t_43"       "t_44"      
+#  [51] "t_45"       "t_46"       "t_47"       "t_48"       "t_49"      
+#  [56] "t_50"       "t_51"       "t_52"       "t_53"       "t_54"      
+#  [61] "t_55"       "t_56"       "t_57"       "t_58"       "t_59"      
+#  [66] "t_60"       "t_61"       "t_62"       "t_63"       "t_64"      
+#  [71] "t_65"       "t_66"       "t_67"       "t_68"       "t_69"      
+#  [76] "t_70"       "t_71"       "t_72"       "t_73"       "t_74"      
+#  [81] "t_75"       "t_76"       "t_77"       "t_78"       "t_79"      
+#  [86] "t_80"       "t_81"       "t_82"       "t_83"       "t_84"      
+#  [91] "t_85"       "t_86"       "t_87"       "t_88"       "t_89"      
+#  [96] "t_90"       "t_91"       "t_92"       "t_93"       "t_94"      
+# [101] "t_95"       "t_96"       "t_97"       "t_98"       "t_99"      
+# [106] "t_100"  
 
 # you can replace the data with dta_pos_4_cmfts.rds to reproduce
 pos_cfmts <- CMFMTS::cmfmts(dataset = df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,8:107],
@@ -612,10 +652,6 @@ colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2)
 pos_cfmts[,42:48] <- df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,1:7]
 
 colnames(pos_cfmts)
-
-
-saveRDS(pos_cfmts[,1:41], 
-        file.path(paths$export_data, "dta_rslt_pos_cmfts.rds"))
 
 
 
@@ -678,6 +714,76 @@ colnames(pos_cfmts_4_pca)
 
 pos_cfmts_4_pca
 
+colnames(pos_cfmts_4_pca[,c(1:4,6:119)])
+saveRDS(pos_cfmts_4_pca[,c(1:4,6:119)], 
+        file.path(paths$export_data, "dta_pos_cmfts_4pca.rds"))
+
+# dta_pos_cmfts_4pca.rds expresion only timeseries features derived from CMFMTS and formated for PCA with indicator for train and test that cna be used to train and  PCA and project test data
+
+```
+colnames(pos_cfmts_4_pca[,c(1:4,6:119)])
+  [1] "filename"                     "train_test"                  
+  [3] "subject"                      "expression"                  
+  [5] "aproximation_entropyk3_comp1" "aproximation_entropyk3_comp2"
+  [7] "aproximation_entropyk3_comp3" "curvaturek3_comp1"           
+  [9] "curvaturek3_comp2"            "curvaturek3_comp3"           
+ [11] "diff1_acf10k3_comp1"          "diff1_acf10k3_comp2"         
+ [13] "diff1_acf10k3_comp3"          "diff1_acf1k3_comp1"          
+ [15] "diff1_acf1k3_comp2"           "diff1_acf1k3_comp3"          
+ [17] "diff1x_pacf5k3_comp1"         "diff1x_pacf5k3_comp2"        
+ [19] "diff1x_pacf5k3_comp3"         "diff2_acf10k3_comp1"         
+ [21] "diff2_acf10k3_comp2"          "diff2_acf10k3_comp3"         
+ [23] "diff2_acf1k3_comp1"           "diff2_acf1k3_comp2"          
+ [25] "diff2_acf1k3_comp3"           "diff2x_pacf5k3_comp1"        
+ [27] "diff2x_pacf5k3_comp2"         "diff2x_pacf5k3_comp3"        
+ [29] "e_acf10k3_comp1"              "e_acf10k3_comp2"             
+ [31] "e_acf10k3_comp3"              "e_acf1k3_comp1"              
+ [33] "e_acf1k3_comp2"               "e_acf1k3_comp3"              
+ [35] "entropyk3_comp1"              "entropyk3_comp2"             
+ [37] "entropyk3_comp3"              "hurstk3_comp1"               
+ [39] "hurstk3_comp2"                "hurstk3_comp3"               
+ [41] "kurtosisk3_comp1"             "kurtosisk3_comp2"            
+ [43] "kurtosisk3_comp3"             "lempel_zivk3_comp1"          
+ [45] "lempel_zivk3_comp2"           "lempel_zivk3_comp3"          
+ [47] "linearityk3_comp1"            "linearityk3_comp2"           
+ [49] "linearityk3_comp3"            "lumpinessk3_comp1"           
+ [51] "lumpinessk3_comp2"            "lumpinessk3_comp3"           
+ [53] "max_kl_shiftk3_comp1"         "max_kl_shiftk3_comp2"        
+ [55] "max_kl_shiftk3_comp3"         "max_level_shiftk3_comp1"     
+ [57] "max_level_shiftk3_comp2"      "max_level_shiftk3_comp3"     
+ [59] "max_var_shiftk3_comp1"        "max_var_shiftk3_comp2"       
+ [61] "max_var_shiftk3_comp3"        "nforbidenk3_comp1"           
+ [63] "nforbidenk3_comp2"            "nforbidenk3_comp3"           
+ [65] "nonlinearityk3_comp1"         "nonlinearityk3_comp2"        
+ [67] "nonlinearityk3_comp3"         "permutation_entropyk3_comp1" 
+ [69] "permutation_entropyk3_comp2"  "permutation_entropyk3_comp3" 
+ [71] "sample_entropyk3_comp1"       "sample_entropyk3_comp2"      
+ [73] "sample_entropyk3_comp3"       "shannon_entropy_CSk3_comp1"  
+ [75] "shannon_entropy_CSk3_comp2"   "shannon_entropy_CSk3_comp3"  
+ [77] "shannon_entropy_SGk3_comp1"   "shannon_entropy_SGk3_comp2"  
+ [79] "shannon_entropy_SGk3_comp3"   "skewnessk3_comp1"            
+ [81] "skewnessk3_comp2"             "skewnessk3_comp3"            
+ [83] "spectral_entropyk3_comp1"     "spectral_entropyk3_comp2"    
+ [85] "spectral_entropyk3_comp3"     "spikek3_comp1"               
+ [87] "spikek3_comp2"                "spikek3_comp3"               
+ [89] "stabilityk3_comp1"            "stabilityk3_comp2"           
+ [91] "stabilityk3_comp3"            "time_kl_shiftk3_comp1"       
+ [93] "time_kl_shiftk3_comp2"        "time_kl_shiftk3_comp3"       
+ [95] "time_level_shiftk3_comp1"     "time_level_shiftk3_comp2"    
+ [97] "time_level_shiftk3_comp3"     "time_var_shiftk3_comp1"      
+ [99] "time_var_shiftk3_comp2"       "time_var_shiftk3_comp3"      
+[101] "trendk3_comp1"                "trendk3_comp2"               
+[103] "trendk3_comp3"                "unitroot_kpssk3_comp1"       
+[105] "unitroot_kpssk3_comp2"        "unitroot_kpssk3_comp3"       
+[107] "unitroot_ppk3_comp1"          "unitroot_ppk3_comp2"         
+[109] "unitroot_ppk3_comp3"          "x_acf10k3_comp1"             
+[111] "x_acf10k3_comp2"              "x_acf10k3_comp3"             
+[113] "x_acf1k3_comp1"               "x_acf1k3_comp2"              
+[115] "x_acf1k3_comp3"               "x_pacf5k3_comp1"             
+[117] "x_pacf5k3_comp2"              "x_pacf5k3_comp3"  
+
+```{r}
+
 # now split into train and test set features
 pos_cfmts_4_pca_train<- pos_cfmts_4_pca%>%
   subset(train_test == "train")
@@ -693,6 +799,8 @@ colnames(pos_cfmts_4_pca_train)
 # the scale below just ensure the different features ar e,or or less in the same range
 
 
+
+
 colnames(pos_cfmts_4_pca_train)
 
 pos_pca_cfmts_train <- prcomp(pos_cfmts_4_pca_train[,c(6:119)],
@@ -702,7 +810,12 @@ pos_pca_cfmts_train <- prcomp(pos_cfmts_4_pca_train[,c(6:119)],
 
 
 # path Data/ExportedData/Models
-saveRDS(pos_pca_cfmts_train, "mod_rslt_pos_pca_cfmts_train.Rds")
+saveRDS(pos_pca_cfmts_train,
+          file.path(paths$export_data,
+                  "mod_rslt_pos_pca_cfmts_train.Rds"))
+
+
+# mod_rslt_pos_pca_cfmts_train.Rds PCA object for expression only timeseries features. note the order does not necessarily match the NMF order
 # naming
 # Extract the loadings
 
@@ -741,7 +854,12 @@ pos_pca_cfmts_test <- predict(pos_pca_cfmts_train, pos_cfmts_4_pca_test[,c(6:119
 
 range(pos_pca_cfmts_test[,1])
 
-saveRDS(pos_pca_cfmts_test, "mod_pos_pca_cfmts_test_proj.Rds")
+saveRDS(pos_pca_cfmts_test, 
+        
+                 file.path(paths$export_data,
+                  "mod_pos_pca_cfmts_test_proj.Rds"))
+# mod_pos_pca_cfmts_test_proj.Rds expression only PCA projection (test)
+# note order of components does not necessarily match the NMF component order
 
 
 # we can change both train and tets PCA names toi matchn NMF
@@ -830,8 +948,20 @@ range(pos_cfmts_4_pca_test$comp3_scale)
 # ?train
 
 # ?caret::train()
-colnames(pos_cfmts_4_pca_train)
+colnames(pos_cfmts_4_pca_train[,c(1:4,120:125)])
 
+
+
+saveRDS(pos_cfmts_4_pca_train[,c(1:4,120:125)],
+
+     file.path(paths$export_data,
+                  "dta_pos_4_rf_train.Rds"))
+
+# pos_cfmts_4_pca_train.Rds 
+# dta_pos_4_rf_train.Rds expression data for rf training
+# colnames(pos_cfmts_4_pca_train[,c(1:4,120:125)])
+#  [1] "filename"    "train_test"  "subject"     "expression"  "comp1"      
+#  [6] "comp2"       "comp3"       "comp1_scale" "comp2_scale" "comp3_scale"
 mod_rf_pos_mts_train <- train(expression ~ comp1_scale + comp2_scale + comp3_scale,
                 data = pos_cfmts_4_pca_train,
                # data = pos_train_set,
@@ -844,7 +974,13 @@ mod_rf_pos_mts_train <- train(expression ~ comp1_scale + comp2_scale + comp3_sca
 
 
 
-saveRDS(mod_rf_pos_mts_train,"mod_rf_pos_mts_train.Rds")
+saveRDS(mod_rf_pos_mts_train,
+        
+         file.path(paths$export_models,
+        
+        "mod_rf_pos_mts_train.Rds"))
+
+# mod_rf_pos_mts_train.Rds random forest model object for expression only train
 mod_rf_pos_mts_train$bestTune
 
 rf_model_pos_train <- mod_rf_pos_mts_train$finalModel
@@ -887,6 +1023,8 @@ pos_test_set_res_mts<- confusionMatrix(pos_cfmts_4_pca_test$prediction,
 pos_test_set_res_mts
 saveRDS(pos_test_set_res_mts, 
         file.path(paths$export_models, "mod_rf_rslt_pos_mts_test.Rds"))
+
+# mod_rf_rslt_pos_mts_test.Rds rf results for expresion only test set prediction
 
 (0.9166667+0.9833333+0.9000000)/3
 ```
