@@ -1,0 +1,514 @@
+---
+title: "Figure 3. Spatiotemporal classification of facial expressions only production."
+author: "Helio"
+date: "2024-08-23"
+output: html_document
+---
+dependencies: expression only mts feature and classification analysis
+```{r}
+paper_plots$ROC_posed <-
+pos_roc_combined%>%
+  group_by(expression)%>%
+  mutate(specificities = sort(1- specificities),
+         sensitivities = sort(sensitivities))%>%
+  mutate(chance_x = maxnormalize(1:n()),
+         chance_y = maxnormalize(1:n()))%>%
+  ungroup()%>%
+ggplot(aes(x =  specificities, y = sensitivities, 
+           group = expression, 
+           colour = expression))+
+
+  geom_point(aes(x = 0, y = 1),colour = "black", size = 2) +
+  geom_line(aes(linetype =  expression), size = 1.5) +
+   geom_line(aes(x = chance_x,
+                 y =chance_y),
+             linetype = "dashed", size = 2, color = "black")+
+  scale_color_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+    base_breaks_x(1-pos_roc_combined$specificities) +
+  base_breaks_y(pos_roc_combined$sensitivities)+
+  annotate( "text",x = 0.15,y=1.05, label = "Perfect separation")+
+  xlab("FPR")+
+  ylab("TPR")+
+  # annotate( "text",x = 0.0999,y=1.05, label = paste0("AUC=", roc.happy$auc)+
+  
+  theme_bw()+
+  plot_style+
+  theme(legend.position = c(.75,.2))
+
+paper_plots$ROC_posed
+```
+
+boundary plots corrected - posed
+```{r}
+# scale
+# for boundary the random forest grid should be the trai one i think
+
+pos_cfmts_4_pca_train
+pos_cfmts_4_pca_test
+
+
+
+pos_cfmts_4_pca_train_test2<- bind_rows(pos_cfmts_4_pca_train,
+          pos_cfmts_4_pca_test)
+
+
+```
+  
+
+use train data to build the grid
+
+```{r}
+pos_cfmts_4_pca_train_test2
+
+pos_cfmts_4_pca_train
+pos_cfmts_4_pca_train$PC
+
+x_min_pos <- min(pos_cfmts_4_pca_train$comp1_scale + 0.5)
+x_max_pos <- max(pos_cfmts_4_pca_train$comp1_scale+ 0.5)
+
+y_min_pos <- min(pos_cfmts_4_pca_train$comp2_scale+ 0.5)
+y_max_pos <- max(pos_cfmts_4_pca_train$comp2_scale+ 0.5)
+
+z_min_pos <- min(pos_cfmts_4_pca_train$comp3_scale+ 0.5)
+z_max_pos <- max(pos_cfmts_4_pca_train$comp3_scale+ 0.5)
+
+  # breaks
+xBreaks_pos <- getPrettyAxisBreaks(pos_cfmts_4_pca_train$comp1_scale, min.n = 4)
+  
+yBreaks_pos <- getPrettyAxisBreaks(pos_cfmts_4_pca_train$comp2_scale, min.n = 4)
+
+zBreaks_pos <- getPrettyAxisBreaks(pos_cfmts_4_pca_train$comp3_scale, min.n = 4)
+  
+  x_min_pos <- xBreaks_pos[1]
+  x_max_pos <- xBreaks_pos[length(xBreaks_pos)]
+  y_min_pos <- yBreaks_pos[1]
+  y_max_pos <- yBreaks_pos[length(yBreaks_pos)]
+  
+   z_min_pos <- zBreaks_pos[1]
+  z_max_pos <- zBreaks_pos[length(zBreaks_pos)]
+  # Adjust the graining
+  hs_pos <- min(c(diff(range(xBreaks_pos)), diff(range(yBreaks_pos)))) / 50
+  hs_z_pos <- min(c(diff(range(yBreaks_pos)), diff(range(zBreaks_pos)))) / 50
+  
+
+mod_rf_pos_mts_train$call
+# train.formula(form = expression ~ comp1_scale + comp2_scale + 
+#     comp3_scale, data = pos_cfmts_4_pca_train, method = "rf", 
+#     trControl = trainControl(method = "oob"), ntree = 500)
+
+# naming needs to obey whats ithe call above
+
+
+
+
+rm(grid_pos_4bound)
+
+grid_pos_4bound<- expand.grid(comp1_scale= seq(x_min_pos, x_max_pos, 
+                                            by = hs_sp
+                            # length.out = 100
+                            ),
+                  comp2_scale= seq(y_min_pos, y_max_pos,
+                                              by = hs_sp
+                           # length.out = 100 
+                           ),
+                  
+                  comp3_scale= seq(z_min_pos, z_max_pos ,
+                                             by = hs_z_sp
+                            # length.out = 100
+                            )
+                  )
+
+str(grid_pos_4bound)
+print(grid_pos_4bound$comp1)
+
+grid_pos_4bound$predicted <- predict(mod_rf_pos_mts_train, grid_pos_4bound)
+
+grid_pos_4bound<- as.data.frame(grid_pos_4bound)
+
+range(grid_pos_4bound$comp1_scale)
+range(grid_pos_4bound$comp2_scale)
+range(grid_pos_4bound$comp4)
+# range(grid_pos_4bound$comp1)# this doesn exist but somehow prints
+
+# grid_pos_4bound$comp
+
+grid_pos_4bound
+# HaloStudy/Data/ExportedData/Models
+saveRDS(grid_pos_4bound, "grid_pos_4bound.rds")
+
+```
+
+
+boundary plots no neutral - use this 13/8/24
+
+
+```{r}
+
+# pos_cfmts_4_pca_train_test2<-
+boundaryplots$pc1_2_ggside <-
+  ggplot() +
+  
+  # Adding tile plot with predicted data
+  geom_tile(
+    data = grid_pos_4bound, 
+    aes(x = comp1_scale, y = comp2_scale, fill = predicted),  # Using 'predicted' as fill
+    alpha = 0.01, 
+    size = 0
+  ) +
+  
+  # Adding points from the scaled and centred PCA data
+  geom_point(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(
+      x = comp1_scale, y = comp2_scale,  # Using scaled components
+      shape = expression,  # Different shapes for different expressions
+      fill = expression     # Fill colour based on expression
+    ),
+    size = 3,    # Size of the points
+    stroke = 0.3 # Width of the outer border
+  ) +
+  
+  # Use filled shapes for points
+  scale_shape_manual(values = 21:25) +
+  
+  # Adding side boxplot for comp2
+  geom_ysideboxplot(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(x = expression, y = comp2_scale, colour = expression, fill = expression),
+    orientation = "x",
+    alpha = 0.5
+  ) +
+  
+  # Adding side density plot for comp1
+  geom_xsidedensity(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(x = comp1_scale, y = ..density.., fill = expression, colour = expression),
+    alpha = 0.5,
+    show.legend = TRUE
+  ) +
+  
+  # Removing side y-axis breaks
+  scale_xsidey_continuous(breaks = NULL) +
+  
+  # Applying a clean theme
+  theme_bw() +
+  
+  # Applying your custom plot style
+  plot_style +
+  
+  # Rotating x-axis labels for the side plot
+  scale_ysidex_discrete(guide = guide_axis(angle = 90)) +
+  
+  # Adjusting the scale of the side panels
+  theme(ggside.panel.scale = 0.2) +
+  
+  # Setting colour palettes for fills and borders
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  
+  # Adding custom breaks for x and y axes
+  base_breaks_x(pos_cfmts_4_pca_train_test2$comp1_scale) +
+  base_breaks_y(pos_cfmts_4_pca_train_test2$comp2_scale) +
+  
+  # Labelling x and y axes intentionally to match the NMF
+  xlab("comp1") +
+  ylab("comp2")
+
+
+
+
+# # range(grid_pos_4bound$PC2)
+# 
+boundaryplots$pc1_2_ggside
+# 
+boundaryplots$pc1_2_ggside <- boundaryplots$pc1_2_ggside+
+  # ggtitle("comp1") +
+  theme(plot.title = element_text(size = 16*(sf+.5), hjust = 0.5),
+        # axis.title.x = element_blank(),
+       legend.position = "none"
+       )
+
+boundaryplots$pc1_2_ggside
+
+
+ # now this is a better separation
+```
+
+
+
+
+```{r}
+# 3 vs 1
+
+
+
+
+boundaryplots$pc1_3_ggside <- 
+  ggplot() +
+  
+  geom_tile(
+    data = grid_pos_4bound, 
+    aes(x = comp3_scale, y = comp1_scale, fill = predicted),  # Using 'predicted' for fill
+    alpha = 0.01, 
+    size = 0
+  ) +
+  
+  geom_point(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(
+      x = comp3_scale, y = comp1_scale,  # Using scaled components
+      shape = expression,  # Different shapes for different expressions
+      fill = expression     # Fill colour based on expression
+    ),
+    size = 3,    # Size of the points
+    stroke = 0.3 # Width of the outer border
+  ) +
+  
+  scale_shape_manual(values = 21:25) +  # Use filled shapes
+  
+  geom_ysideboxplot(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(x = expression, y = comp1_scale, colour = expression, fill = expression),
+    orientation = "x",
+    alpha = 0.5
+  ) +
+  
+  geom_xsidedensity(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(x = comp3_scale, y = ..density.., fill = expression, colour = expression),
+    alpha = 0.5,
+    show.legend = TRUE
+  ) +
+  
+  scale_xsidey_continuous(breaks = NULL) +
+  
+  theme_bw() +
+  plot_style +
+  
+  scale_ysidex_discrete(guide = guide_axis(angle = 90)) +
+  theme(ggside.panel.scale = 0.2) +
+  
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  
+  base_breaks_x(grid_pos_4bound$comp3_scale) +
+  base_breaks_y(grid_pos_4bound$comp1_scale) +
+  
+  xlab("comp3") +  # Labelling axes according to components
+  ylab("comp1")
+
+
+# range(grid_pos_4bound$PC2)
+
+boundaryplots$pc1_3_ggside <- boundaryplots$pc1_3_ggside+
+  # ggtitle("comp1") +
+  theme(plot.title = element_text(size = 16*(sf+.5), hjust = 0.5),
+        # axis.title.x = element_blank(),
+       legend.position = "none"
+       )
+
+
+
+
+boundaryplots$pc1_3_ggside
+```
+
+
+
+boundaryplots$pos_PC2_3
+
+
+```{r}
+# pos_cfmts_4_pca_train_test1
+# pos_mts_no0Sd_no0Sd_dcast_2_
+# 4bound
+
+
+# 2 vs 3
+
+
+
+boundaryplots$pc2_3_ggside <- 
+  ggplot() +
+  
+  geom_tile(
+    data = grid_pos_4bound, 
+    aes(x = comp2_scale, y = comp3_scale, fill = predicted),  # Using 'comp2' and 'comp3' instead of PC2 and PC3
+    alpha = 0.01, 
+    size = 0
+  ) +
+  
+  geom_point(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(
+      x = comp2_scale, y = comp3_scale,  # Using 'comp2_scale' and 'comp3_scale' instead of PC2_scale and PC3_scale
+      shape = expression,  # Different shapes for different expressions
+      fill = expression     # Fill colour based on expression
+    ),
+    size = 3,    # Size of the points
+    stroke = 0.3 # Width of the outer border
+  ) +
+  
+  scale_shape_manual(values = 21:25) +  # Use filled shapes
+  
+  geom_ysideboxplot(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(x = expression, y = comp3_scale, colour = expression, fill = expression),
+    orientation = "x",
+    alpha = 0.5
+  ) +
+  
+  geom_xsidedensity(
+    data = pos_cfmts_4_pca_train_test2,
+    aes(x = comp2_scale, y = ..density.., fill = expression, colour = expression),
+    alpha = 0.5,
+    show.legend = TRUE
+  ) +
+  
+  scale_xsidey_continuous(breaks = NULL) +
+  
+  theme_bw() +
+  plot_style +
+  
+  scale_ysidex_discrete(guide = guide_axis(angle = 90)) +
+  theme(ggside.panel.scale = 0.2) +
+  
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  
+  base_breaks_x(pos_cfmts_4_pca_train_test2$comp2_scale) +  # Using 'comp2_scale' for x-axis breaks
+  base_breaks_y(pos_cfmts_4_pca_train_test2$comp3_scale) +  # Using 'comp3_scale' for y-axis breaks
+  
+  xlab("comp2") +  # Labeling x-axis as 'comp2'
+  ylab("comp3")    # Labeling y-axis as 'comp3'
+
+
+
+boundaryplots$pc2_3_ggside
+
+
+boundaryplots$pc2_3_ggside <-
+boundaryplots$pc2_3_ggside+
+  # ggtitle("comp1") +
+  theme(plot.title = element_text(size = 16*(sf+.5), hjust = 0.5),
+        # axis.title.x = element_blank(),
+       legend.position = "none"
+       )+
+  # Combine legends for colour, fill, and shape
+   guides(colour = guide_legend("Legend Title"),
+          fill = guide_legend("Legend Title"),
+          shape = guide_legend("Legend Title"))
+
+boundaryplots$pc2_3_ggside
+
+
+
+```
+
+
+Heat map
+
+```{r}
+
+paper_plots$conf_mat_posed 
+
+
+
+
+rm(pos_test_set_res_mts_)
+pos_test_set_res_mts<- confusionMatrix(pos_cfmts_4_pca_test$prediction, 
+                pos_cfmts_4_pca_test$expression)
+
+
+pos_test_set_res<- confusionMatrix(pos_cfmts_4_pca_test$prediction,  pos_cfmts_4_pca_test$expression, mode = "everything", positive="1")
+
+
+table(pos_cfmts_4_pca_test$expression)
+table(pos_test_set_mts$prediction)
+
+pos_test_set_mts$prediction 
+table(pos_test_set_mts$expression)
+
+
+paper_plots$conf_mat_posed <-
+as.data.frame(confusionMatrix(pos_cfmts_4_pca_test$prediction , as.factor(pos_cfmts_4_pca_test$expression), 
+                              mode = "everything", positive="1")[["table"]])%>%
+  mutate(prop = Freq/15)%>% #/15
+  
+  mutate(Reference = factor(Reference, levels = c('angry', 'happy', 'sad')),
+          Prediction = factor(Prediction, levels = c('angry', 'happy', 'sad')))%>%
+      ggplot(aes(Reference,Prediction, fill = prop))+
+    geom_tile()+
+       # scale_fill_viridis_c(option = "magma")
+    scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+
+    # 
+      # scale_fill_viridis_c(option = "magma")+
+  xlab("Expression")+
+  ylab("Prediction")+
+  
+  theme_bw()+
+  plot_style+
+  guides(fill=guide_colorbar(ticks.colour = NA))+
+  theme(panel.spacing = unit(1, "cm"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(angle = 45, hjust = 1), 
+        legend.position = "top"
+        )
+
+paper_plots$conf_mat_posed
+
+
+
+```
+
+
+
+combine spoken Figure 3
+
+```{r}
+
+paper_plots$panel_posed_fig3_ggside <-
+((boundaryplots$pc1_2_ggside )+
+  patchwork::wrap_elements(legend_side)+
+
+  paper_plots$ROC_posed +
+  (boundaryplots$pc2_3_ggside )+
+    (boundaryplots$pc1_3_ggside )+
+  paper_plots$conf_mat_posed)
+
+paper_plots$panel_posed_fig3_ggside
+
+
+
+
+ggsave("panel_posed_fig3_ggsidenew.tiff",  paper_plots$panel_posed_fig3_ggside,
+       device = "tiff",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 800
+       )
+
+
+ggsave("panel_posed_fig3_ggsidenew.png",  paper_plots$panel_posed_fig3_ggside,
+       device = "png",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 800
+       )
+
+ggsave("panel_posed_fig3_ggsidenew.pdf",  paper_plots$panel_posed_fig3_ggside,
+       device = "pdf",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 800
+       )
+
+
+
+
+```

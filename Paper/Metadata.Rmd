@@ -1,0 +1,95 @@
+---
+title: "Metadata"
+author: "Helio"
+date: "2024-08-30"
+output: html_document
+---
+
+
+OSF
+pos= expression only condition
+spoken = emotive speech
+
+data
+dta_expr_only_4nmf.rds
+dta_spk_4nmf.rds
+dta_expr_only_4nmf_train.rds
+dta_spk_4nmf_train.rds
+dta_expr_only_4nmf_test.rds
+dta_spk_4nmf_test.rds
+
+models and results
+mod_lmer_speed.rds
+mod_rf_rslt_spk_mts_test.Rds
+mod_rf_rslt_pos_mts_test.Rds
+mod_lmer_trans_entropy.rds
+mod_lmer_stat_entropy.rds
+mod_rf_spk_train.rds
+mod_rslt_spk_pca_cmfts_test_proj.rds
+mod_rslt_spk_pca_cmfts_train.rds
+mod_rslt_spk_nmf_test.rds
+mod_rslt_spk_nmf_train.rds
+mod_rslt_nmfspk.rds
+mod_rslt_nmfposed_test_projection.Rds
+mod_rslt_nmfposed_train.Rds
+grid_pos_4bound.rds
+df_OF_output_AUsW_unblind_posed_binned.Rds
+mod_pos_pca_cfmts_test_proj.Rds
+mod_rf_pos_mts_train.Rds
+mod_rslt_pos_pca_cfmts_train.Rds
+mod_rslt_nmfposed.Rds
+
+
+OSF
+mod_rslt_nmfposed.Rds
+mod_rslt_nmfspk.rds
+
+these are the same?
+mod_rslt_spk_nmf_test.rds
+mod_rslt_spk_nmf_train.rds
+mod_rf_rslt_spk_mts_test.Rds
+mod_rf_rslt_pos_mts_test.Rds
+mod_rf_pos_mts_train.Rds
+mod_rf_spk_train.Rds
+
+
+
+
+
+
+
+?
+mod_rslt_spk_nmf_test.rds
+mod_rslt_spk_nmf_train.rds
+
+mod_lmer_speed.rds
+mod_lmer_trans_entropy.rds
+
+
+
+
+
+dta_expr_only_4nmf.rds data to reproduce the expression only NNM analysis
+columns
+[1] "filename"                   
+ [2] "bin_frame"                  
+ [3] "subject"                    
+ [4] "expression"                 
+ [5] "AU01_r_Inner_brow_raiser"   
+ [6] "AU02_r_Outer_brow_raiser"   
+ [7] "AU04_r_Brow_lowerer"        
+ [8] "AU05_r_Upper_lid_raiser"    
+ [9] "AU06_r_Cheek_raiser"        
+[10] "AU07_r_Lid_tightener"       
+[11] "AU09_r_Nose_wrinkler"       
+[12] "AU10_r_Upper_lip_raiser"    
+[13] "AU12_r_Lip_corner_puller"   
+[14] "AU14_r_Dimpler"             
+[15] "AU15_r_Lip_corner_depressor"
+[16] "AU17_r_Chin_raiser"         
+[17] "AU20_r_Lip_stretcher"       
+[18] "AU23_r_Lip_tightener"       
+[19] "AU25_r_Lips_part"           
+[20] "AU26_r_Jaw_drop"            
+[21] "AU45_r_Blink"
+

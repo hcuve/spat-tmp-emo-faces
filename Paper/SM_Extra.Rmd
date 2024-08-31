@@ -1,0 +1,169 @@
+---
+title: "SM"
+author: "Helio"
+date: "2024-08-23"
+output: html_document
+---
+
+
+SM Plots
+
+Fig S1
+```{r}
+plots_SM$posed_fit_vs_rand <- plot(res_find_k_1,estim_posed_random_2_tbs_5)+
+  geom_vline(xintercept = 3)
+plots_SM$posed_fit_vs_rand$facet
+
+plots_SM$posed_fit_vs_rand1<- plots_SM$posed_fit_vs_rand$data %>%
+    mutate(Data = ifelse(Data == "x", "original", "simulated (permuted)"))%>%
+  ggplot(aes(rank, value, colour = Type, shape = Data, linetype = Data ))+
+     geom_vline(xintercept = 3,linetype = "dotted")+
+  geom_point()+
+  geom_line()+
+  facet_wrap(~ Measure, scales = "free_y", nrow = 3)+
+  # scale_fill_viridis_d(option = "D")
+  scale_color_brewer(palette = "Dark2")+# keeps its own range
+  xlab("Factorization rank (k) ")+
+   ggtitle("NMF component rank validation")+
+  
+# annotate("text", x = 3, y = Inf, label = "final solution", 
+         # vjust = -0.5, angle = 90, 
+         # size = 3, colour = "black")+
+  theme_light()+
+  theme(axis.title.y = element_blank())
+   
+plots_SM$posed_fit_vs_rand1
+facet_grid(pollutant~id, scales = "free_y", labeller = label_both, switch = "y")
+
+
+SM_Spoken_fit_valid_300dpi.png
+ggsave("SM_posed_fit_valid_300dpi.pdf",
+       device = 'pdf',    
+    plots_SM$posed_fit_vs_rand1,
+       width = 7,
+       height = 5,
+       dpi = 300)
+
+ggsave("SM_posed_fit_valid_300dpi.tiff",
+       device = 'tiff',    
+     plots_SM$posed_fit_vs_rand1,
+        width = 7,
+       height = 5,
+       dpi = 300)
+
+ggsave("SM_posed_fit_valid_300dpi.png",
+       device = 'png',    
+      plots_SM$posed_fit_vs_rand1,
+              width = 7,
+       height = 5,
+       dpi = 300)
+
+plots_SM$posed_fit_vs_rand1
+```
+
+Fig S2-S3
+```{r}
+
+
+
+# SM_Spok_consens
+NMF::consensusmap(res_find_k_1) #Fig S2
+
+NMF::consensusmap(estim_posed_random_2_tbs_5) #Fig S3
+
+
+patchwork::wrap_elements(NMF::consensusmap(res_find_k_spk_subs))
+ 
+
+```
+
+
+table S 1 and 2
+
+```{r}
+write.csv( pos_test_set_res_mts$table, "con_mat_pos.csv")
+
+# round(con_mat_posed$byClass, digits = 2)
+# round(con_mat_posed$byClass, digits = 2)
+con_mat_pos_bycl_df<-t(as.data.frame(round(pos_test_set_res_mts$byClass,digits = 2)))
+
+pos_test_set_res_mts
+
+con_mat_pos_bycl_df
+write.csv(con_mat_pos_bycl_df, "con_mat_pos_bycl_df.csv")
+
+```
+
+Fig S 4  
+```{r}
+plots_SM$spk_fit_vs_rand1<- plots_SM$spk_fit_vs_rand$data %>%
+    mutate(Data = ifelse(Data == "x", "original", "simulated (permuted)"))%>%
+  ggplot(aes(rank, value, colour = Type, shape = Data, linetype = Data ))+
+     geom_vline(xintercept = 3,linetype = "dotted")+
+  geom_point()+
+  geom_line()+
+  facet_wrap(~ Measure, scales = "free_y", nrow = 3)+
+  # scale_fill_viridis_d(option = "D")
+  scale_color_brewer(palette = "Dark2")+# keeps its own range
+  xlab("Factorization rank (k) ")+
+   ggtitle("NMF component rank validation")+
+  
+  theme_light()+
+  theme(axis.title.y = element_blank())
+
+
+plots_SM$spk_fit_vs_rand1
+setwd("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedFigures/SM")
+
+ggsave("SM_Spoken_fit_valid_300dpi.pdf",
+       device = 'pdf',    
+       plots_SM$spk_fit_vs_rand1,
+       width = 7,
+       height = 5,
+       dpi = 300)
+
+ggsave("SM_Spoken_fit_valid_300dpi.tiff",
+       device = 'tiff',    
+       plots_SM$spk_fit_vs_rand1,
+        width = 7,
+       height = 5,
+       dpi = 300)
+
+ggsave("SM_Spoken_fit_valid_300dpi.png",
+       device = 'png',    
+       plots_SM$spk_fit_vs_rand1,
+              width = 7,
+       height = 5,
+       dpi = 300)
+
+plots_SM$spk_fit_vs_rand1
+```
+fig s5-s6
+```{r}
+   
+# consensus plots save manually at 1200 by 1200 tiff
+NMF::consensusmap(res_find_k_spk_subs) #Fig s5
+# SM_Spok_consens
+NMF::consensusmap(estim_spk_random_1) #Fig S6
+
+
+ patchwork::wrap_elements(NMF::consensusmap(res_find_k_spk_subs))
+ 
+```
+
+table S3-4
+
+```{r}
+ite.csv( spoken_test_set_res_mts_no_neutr$table, "con_mat_spk.csv")
+
+# round(con_mat_posed$byClass, digits = 2)
+# round(con_mat_posed$byClass, digits = 2)
+con_mat_spk_bycl_df<-t(as.data.frame(round(spoken_test_set_res_mts_no_neutr$byClass,digits = 2)))
+
+spoken_test_set_res_mts_no_neutr
+
+con_mat_spk_bycl_df
+write.csv(con_mat_spk_bycl_df, "con_mat_spk_bycl_df.csv")
+
+
+```

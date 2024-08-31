@@ -1,0 +1,826 @@
+---
+title: "Facial expression substate analyses"
+author: "Helio"
+output: html_document
+---
+
+
+
+```{r}
+
+library(dplyr)
+library(tsclust)
+# install.packages("sjstats")
+# install.packages("sjPlot")
+# install.packages("psycho")
+# install.packages("remotes")
+# install.packages("easystats")
+
+
+```
+
+
+```{r}
+
+# Define a custom function to perform max-norm normalization
+maxnorm <- function(x) {
+  x / max(abs(x))
+}
+
+# Define a custom function to perform clustering with tsclust
+perform_tsclust_clustering <- function(data) {
+  tsclust_result <- tsclust(data[, c("sp_avg", "comp_delta_avg", "compavg")], k = 3)
+  return(tsclust_result@cluster)
+}
+
+# Apply max-norm normalization and perform tsclust clustering
+unique(df_OF_output_AUsW_unblind_posed_binned3_nona_clust$sp_avg)
+range(df_OF_output_AUsW_unblind_posed_binned3_nona_clust$sp_avg)
+df_with_clusters6 <- df_OF_output_AUsW_unblind_posed_binned3_nona_clust %>%
+  group_by(filename) %>%
+    # group_by(subject) %>%
+  mutate(sp_avg = maxnorm(sp_avg),
+         comp_delta_avg = maxnorm(comp_delta_avg),
+         compavg = maxnorm(compavg)) %>%
+  ungroup() %>%
+  mutate(cluster_across = perform_tsclust_clustering(cur_data()))
+
+# quick check
+
+df_with_clusters6%>%
+  # subset(filename == "./cut_posed_sad_day1_p7.csv")%>%
+
+  ggplot(aes(as.numeric(bin_frame), as.factor(subject), fill = as.factor(cluster_across)))+
+  geom_tile()+
+
+   scale_fill_viridis_d(option = "magma")+
+
+  facet_grid(~expression)+
+  theme_classic()
+
+```
+
+
+# illustration
+
+
+```{r}
+df_with_clusters6%>%
+  subset(idno == 30)%>%
+
+  ggplot(aes(as.numeric(bin_frame), sp_avg))+
+
+  geom_rect(aes(xmin = bin_frame, xmax = dplyr::lag(bin_frame), ymin = -Inf, ymax = Inf, fill = factor(cluster_across)), 
+            alpha = .6)  +
+    geom_line(size = 1)+
+  geom_line(aes(y = comp_delta_avg),  size = 1, linetype = 2)+
+  geom_line(aes(y = comp1))+
+  geom_line(aes(y = comp2))+
+  geom_line(aes(y = comp3))+
+  # geom_rect(aes(xmin=kmean_order-0.5, xmax=kmean_order+0.5))+ 
+  # geom_smooth(se = F)+
+  # facet_grid(~drug.placebo)+
+  theme_classic()
+
+
+
+```
+
+# name clusters
+
+```{r}
+df_with_clusters6$cluster_label <- if_else(df_with_clusters6$cluster_across == 2,
+                                             "relaxed",
+                                             if_else(df_with_clusters6$cluster_across == 1,
+                                             "transition",
+                                             if_else(df_with_clusters6$cluster_across == 3,
+                                             "sustain",NA)))
+
+
+
+
+colnames(df_with_clusters6)
+df_with_clusters6%>%
+  mutate(speed = sp_avg,
+         displacement = comp_delta_avg,
+         nmf_k1 = comp1,
+         nmf_k2 = comp2,
+         nmf_k3 = comp3)%>%
+  subset(idno == 10)%>%
+  select(c(bin_frame,speed,displacement,nmf_k1,nmf_k2,nmf_k3,cluster_label))%>%
+  # gather(variable,value,-bin_frame,-cluster_label,-filename)%>%
+
+  # test
+  gather(variable, coef,-bin_frame,-filename,-cluster_label) %>%
+  mutate(var_type = if_else(grepl("speed", variable), "2. speed",  
+                                
+                                        if_else(grepl("displacement", variable), "3. displacement",  
+ if_else(grepl("nmf", variable ), "1. nmf",NA)))) %>%
+
+group_by(var_type)%>%
+  mutate(coef_z = scale(coef))%>%
+  # group_by(variable, bin_frame,var_type, cluster_label)%>%
+  # summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+  ggplot(aes(bin_frame, coef_z, group = variable))+
+  
+    geom_rect(aes(xmin = bin_frame, xmax = dplyr::lag(bin_frame), ymin = -Inf, ymax = Inf, fill = cluster_label),
+            alpha = .3)  +
+  geom_line(aes(group = variable, linetype = var_type), size = 1)+
+   facet_grid(var_type~.)+
+  # facet_grid(variable_type~.)+
+  theme_classic()
+
+```
+
+
+
+SUBSTATE POSED
+spoken_NMF
+
+```{r}
+colnames(spoken_NMF)
+
+unique(spoken_NMF$posed_spoken)
+
+require("zoo")
+spoken_NMF<- spoken_NMF %>%
+  group_by(filename)%>%
+  ungroup()%>%
+  # subset(filename == "./cut_posed_angry_day1_p1.csv")%>%
+  # select(c(2,38,42))%>%
+  mutate(k3_comp1_speed = (abs(lag(k3_comp1) - k3_comp1))/abs((lead(bin_frame)-bin_frame)),
+         k3_comp2_speed = (abs(lag(k3_comp2) - k3_comp2))/abs((lead(bin_frame)-bin_frame)),
+         k3_comp3_speed = (abs(lag(k3_comp3) - k3_comp3))/abs((lead(bin_frame)-bin_frame)),
+        
+         k3_comp1_diff = as.numeric(diff(zoo::zoo(k3_comp1), na.pad = TRUE)),
+         k3_comp2_diff =as.numeric(diff(zoo::zoo(k3_comp2), na.pad = TRUE)),
+         k3_comp3_diff =as.numeric(diff(zoo::zoo(k3_comp3), na.pad = TRUE)),
+         
+         # moving averages
+         k3_comp1_diff_ma = as.numeric(zoo::rollmean(k3_comp1_diff, k = 5, fill = NA)),
+         k3_comp2_diff_ma = as.numeric(zoo::rollmean(k3_comp2_diff, k = 5, fill = NA)),
+         k3_comp3_diff_ma = as.numeric(zoo::rollmean(k3_comp3_diff, k = 5, fill = NA)),
+           
+          k3_comp1_speed_ma = as.numeric(zoo::rollmean(k3_comp1_speed, k = 5, fill = NA)),
+        k3_comp2_speed_ma = as.numeric(zoo::rollmean(k3_comp2_speed, k = 5, fill = NA)),
+         k3_comp3_speed_ma = as.numeric(zoo::rollmean(k3_comp3_speed, k = 5, fill = NA)))%>%
+  
+  
+  mutate(sp_avg = (k3_comp1_speed_ma+k3_comp2_speed_ma+k3_comp3_speed_ma)/3)%>%
+   mutate(comp_delta_avg = (k3_comp1_diff_ma +k3_comp2_diff_ma+k3_comp3_diff_ma)/3)%>%
+  
+  
+  mutate(peak_speed =  sum(abs(sp_avg), na.rm = TRUE),
+           max_displacement = sum(abs(comp_delta_avg), na.rm = TRUE),
+          compavg = sum(abs(k3_comp1+k3_comp2+k3_comp3), na.rm = TRUE)
+         )
+
+
+# plot to see if we can viusally notice subates based on speed profiles
+unique(spoken_NMF$filename)
+spoken_NMF$filename
+
+
+
+
+```
+  
+# cluster substates here spoken
+  
+```{r}
+# Load the required packages
+
+# Define a custom function to perform clustering with tsclust
+perform_tsclust_clustering <- function(data) {
+  tsclust_result <- tsclust(data[, c("sp_avg", "comp_delta_avg", "compavg")], k = 3)
+  return(tsclust_result@cluster)
+}
+
+# Apply max-norm normalization and perform tsclust clustering
+
+?zoo::na.approx()
+library(zoo)
+
+spoken_NMF_int <- spoken_NMF %>%
+  group_by(filename) %>%
+  mutate(sp_avg = na.approx(sp_avg, na.rm = FALSE),
+         comp_delta_avg = na.approx(comp_delta_avg, na.rm = FALSE),
+ compavg = na.approx(compavg, na.rm = FALSE))%>%
+  ungroup()
+
+
+table(is.na(spoken_NMF_int$sp_avg))
+
+table(is.na(spoken_NMF_int$comp_delta_avg))
+table(is.na(spoken_NMF_int$compavg))
+
+spoken_NMF_int$sp_avg<- if_else(is.na(spoken_NMF_int$sp_avg), 0,spoken_NMF_int$sp_avg)
+spoken_NMF_int$comp_delta_avg<- if_else(is.na(spoken_NMF_int$comp_delta_avg), 0,spoken_NMF_int$comp_delta_avg)
+spoken_NMF_int$compavg<- if_else(is.na(spoken_NMF_int$compavg), 0,spoken_NMF_int$compavg)
+
+# rm(df_with_clusters5hier, df_with_clusters6_lm_nonl)
+# rm(df_with_clusters3_agg)
+# rm(dcast_time)
+# rm(df_OF_output_AU_andLand)
+# rm(df_OF_output_AUstest)
+# 
+# rm(df_OF_output_AUsW_unblind)
+# rm(df_OF_output_land_posed_binned_select)
+# rm(df_sp)
+
+unique(spoken_NMF_int$drug.placebo)
+
+# remove temporarfile.show
+# rm(tmp_tbl, test, test_bind_agg_spoken_posed, test_bind_agg_spoken_posed_noneutr,
+#    test_del, test_gradient,testspokenmtsnafilled, test_happy_dcast_summ, test_happy_dcast_summ_paired_test,
+#    test4_df)
+# rm(spoken_NMF_with_clusters6)
+
+spoken_NMF_with_clusters6 
+
+
+spoken_NMF_int<- spoken_NMF_int %>%
+  group_by(filename) %>%
+  # subset(drug.placebo == "placebo")%>%
+  mutate(sp_avg = maxnorm(sp_avg),
+         comp_delta_avg = maxnorm(comp_delta_avg),
+         compavg = maxnorm(compavg))
+
+# try to separate placebo and drug to avoid exhaust memory
+spoken_NMF_with_clusters6_plac<- spoken_NMF_int%>%
+  subset(drug.placebo == "placebo")%>%
+  ungroup() %>%
+  mutate(cluster_across = perform_tsclust_clustering(cur_data()))
+
+# drug
+spoken_NMF_int$drug.placebo
+
+spoken_NMF_with_clusters6_drug<- spoken_NMF_int%>%
+  subset(drug.placebo == "drug")%>%
+  ungroup() %>%
+  mutate(cluster_across = perform_tsclust_clustering(cur_data()))
+
+# quick check
+
+spoken_NMF_with_clusters6_drug%>%
+  # subset(filename == "./cut_posed_sad_day1_p7.csv")%>%
+
+  ggplot(aes(as.numeric(bin_frame), as.factor(subject), fill = as.factor(cluster_across)))+
+  geom_tile()+
+
+   scale_fill_viridis_d(option = "magma")+
+
+  facet_grid(~expression)+
+  theme_classic()
+
+spoken_NMF_with_clusters6_plac%>%
+  # subset(filename == "./cut_posed_sad_day1_p7.csv")%>%
+
+  ggplot(aes(as.numeric(bin_frame), as.factor(subject), fill = as.factor(cluster_across)))+
+  geom_tile()+
+
+   scale_fill_viridis_d(option = "magma")+
+
+  facet_grid(~expression)+
+  theme_classic()
+# 2 in drug is 3 in placebo
+# 1 and 1 are the same?
+# 3 is 2
+?recode
+spoken_NMF_with_clusters6_drug<- spoken_NMF_with_clusters6_drug%>%
+  mutate(cluster_across_recode = recode(cluster_across, `2` = 3, `1` = 1, `3` =2))
+
+# now copare again
+
+spoken_NMF_with_clusters6_drug%>%
+  # subset(filename == "./cut_posed_sad_day1_p7.csv")%>%
+
+  ggplot(aes(as.numeric(bin_frame), as.factor(subject), fill = as.factor(cluster_across_recode)))+
+  geom_tile()+
+
+   scale_fill_viridis_d(option = "magma")+
+
+  facet_grid(~expression)+
+  theme_classic()
+
+spoken_NMF_with_clusters6_plac%>%
+  # subset(filename == "./cut_posed_sad_day1_p7.csv")%>%
+
+  ggplot(aes(as.numeric(bin_frame), as.factor(subject), fill = as.factor(cluster_across)))+
+  geom_tile()+
+
+   scale_fill_viridis_d(option = "magma")+
+
+  facet_grid(~expression)+
+  theme_classic()
+
+spoken_NMF_with_clusters6_drug$cluster_across<- spoken_NMF_with_clusters6_drug$cluster_across_recode
+spoken_NMF_with_clusters6_drug$cluster_across_recode<- NULL
+
+# now merge drug and placebo
+spoken_NMF_with_clusters6<- bind_rows(spoken_NMF_with_clusters6_plac, spoken_NMF_with_clusters6_drug)
+```
+
+some visualisations of spoken_NMF_with_clusters6
+```{r}
+unique(spoken_NMF_with_clusters6$filename)
+
+# visualise example of substates
+spoken_NMF_with_clusters6%>%
+    # subset(idno == 30)%>%
+  subset(filename == "./cut_spoken_sad_day1_p17.csv")%>%
+
+  ggplot(aes(as.numeric(bin_frame), sp_avg))+
+
+  geom_rect(aes(xmin = bin_frame, xmax = dplyr::lag(bin_frame), ymin = -Inf, ymax = Inf, fill = factor(cluster_across)), 
+            alpha = .6)  +
+    geom_line(size = 1)+
+  geom_line(aes(y = comp_delta_avg),  size = 1, linetype = 2)+
+  geom_line(aes(y = k3_comp1))+
+  geom_line(aes(y = k3_comp2))+
+  geom_line(aes(y = k3_comp3))+
+     scale_fill_viridis_d(option = "magma")+
+  theme_classic()
+
+# visualise one profile for substates and facegrid variables
+
+
+```
+
+create cluster labels consistent with posed labels
+
+```{r}
+spoken_NMF_with_clusters6$cluster_label <- if_else(spoken_NMF_with_clusters6$cluster_across == 3, "relax",
+                                                 if_else(spoken_NMF_with_clusters6$cluster_across == 1, "transition",
+                                                         if_else(spoken_NMF_with_clusters6$cluster_across == 2,"sustain", NA)))
+
+
+spoken_NMF_with_clusters6
+
+spoken_NMF_with_clusters6
+
+
+# peak speed displ
+
+```
+
+
+bind spoken and posed include timebins for new entropy calculation
+
+```{r}
+
+spoken_NMF_with_clusters6$comp1<- spoken_NMF_with_clusters6$k3_comp1
+spoken_NMF_with_clusters6$comp2<- spoken_NMF_with_clusters6$k3_comp2
+spoken_NMF_with_clusters6$comp3<- spoken_NMF_with_clusters6$k3_comp3
+
+df_with_clusters6$comp1
+spoken_NMF_with_clusters6
+df_with_clusters6$
+spoken_posed_nmf<- bind_rows(
+  spoken_NMF_with_clusters6 [,c("filename","bin_frame", "subject", "cluster_label","expression","posed_spoken","drug.placebo","sp_avg","comp_delta_avg", "peak_speed", "max_displacement","comp1","comp2", "comp3")],
+  df_with_clusters6[,c("filename","bin_frame","subject", "cluster_label","expression","posed_spoken","drug.placebo","sp_avg","comp_delta_avg", "peak_speed", "max_displacement","comp1","comp2", "comp3")])%>%
+  group_by(filename, subject,bin_frame, cluster_label, expression, posed_spoken,
+           drug.placebo)%>%
+  summarise_if(is.numeric, mean, na.rm = T)
+
+# do the entropy calculation again here
+
+spoken_posed_nmf
+
+# spoken_posed_nmf$cluster_label<- if_else(spoken_posed_nmf$cluster_label == "relax", "relaxed", spoken_posed_nmf$cluster_label)
+
+unique(spoken_posed_nmf$cluster_label)
+spoken_posed_nmf
+
+```
+
+
+```{r}
+
+# recompute speed and displacement
+spoken_posed_nmf%>%
+  
+  arrange(subject,filename,bin_frame)%>%
+group_by(filename)%>%
+   mutate(comp_avg = (comp1 +comp2+comp3)/3)%>%
+  mutate(displacement = (comp_avg - lag(comp_avg, default = NA))) %>%
+  mutate(time_difference = abs(bin_frame - lag(bin_frame, default = NA))) %>%
+  mutate(speed = abs(displacement) / time_difference) %>%
+  mutate(acceleration = ((speed - lag(speed, default = speed[1])) / time_difference))%>%
+  subset(filename == "./cut_posed_angry_day1_p10.csv")%>%
+  ggplot(aes(bin_frame, displacement, colour = "red"))+
+  geom_line()+
+  # geom_line(aes(y = comp2))+
+  #  geom_line(aes(y = comp3))+
+   # geom_line(aes(y = displacement), linetype = "dashed", colour = "red")+
+   geom_line(aes(y = speed), linetype = "dashed", colour = "blue")+
+   geom_line(aes(y = acceleration), linetype = "dashed", colour = "green")
+
+
+# check peak and stuff
+
+spoken_posed_nmf%>%
+  
+  arrange(subject,filename,bin_frame)%>%
+group_by(filename)%>%
+   mutate(comp_avg = (comp1 +comp2+comp3)/3)%>%
+  mutate(displacement = (comp_avg - lag(comp_avg, default = NA))) %>%
+  mutate(time_difference = abs(bin_frame - lag(bin_frame, default = NA))) %>%
+  mutate(speed = abs(displacement) / time_difference) %>%
+  mutate(acceleration = ((speed - lag(speed, default = speed[1])) / time_difference))%>%
+  # subset(filename == "./cut_posed_angry_day1_p10.csv")%>%
+  group_by(filename,cluster_label,posed_spoken,expression)%>%
+  summarise_if(is.numeric, max, na.rm =T)%>%
+  ggplot(aes(comp_avg, speed, colour =posed_spoken ))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_grid(cluster_label ~expression)
+
+
+spoken_posed_nmf%>%
+  
+  arrange(subject,filename,bin_frame)%>%
+group_by(filename)%>%
+   mutate(comp_avg = (comp1 +comp2+comp3)/3)%>%
+  mutate(displacement = abs(comp_avg - lag(comp_avg, default = NA))) %>%
+  mutate(time_difference = abs(bin_frame - lag(bin_frame, default = NA))) %>%
+  mutate(speed = abs(displacement) / time_difference) %>%
+  mutate(acceleration = ((speed - lag(speed, default = speed[1])) / time_difference))%>%
+  # subset(filename == "./cut_posed_angry_day1_p10.csv")%>%
+  group_by(filename,cluster_label,posed_spoken,expression)%>%
+  summarise_if(is.numeric, mean, na.rm =T)%>%
+  ggplot(aes(expression, speed, colour =posed_spoken ))+
+  stat_summary(geom = "pointrange")+
+  geom_smooth(method = "lm")+
+  facet_grid(~cluster_label)
+
+
+spoken_posed_nmf<- spoken_posed_nmf%>%
+  
+  arrange(subject,filename,bin_frame)%>%
+group_by(filename)%>%
+   mutate(comp_avg_new = (comp1 +comp2+comp3)/3)%>%
+  mutate(displacement = comp_avg - lag(comp_avg, default = NA)) %>%
+  mutate(time_difference = abs(bin_frame - lag(bin_frame, default = NA))) %>%
+  mutate(speed = abs(displacement) / time_difference) %>%
+  mutate(acceleration = ((speed - lag(speed, default = speed[1])) / time_difference))
+
+spoken_posed_nmf
+
+```
+ 
+ 
+ 
+
+
+
+
+```{r}
+# spoken_posed_nmf_backup<- spoken_posed_nmf
+
+spoken_posed_nmf
+spoken_posed_nmf$cluster_label
+
+# 
+# colnames(spoken_posed_nmf)
+# spoken_posed_nmf$sp_avg
+
+# remove those without one of the sets
+
+
+# no data for p9 as he refused to do the task and then day 1 data only for 
+
+# Values to remove
+tmp_subj_to_remove <- c(4, 9, 12, 26, 34, 35, 41, 42, 43)
+
+# Dataframe filtering
+spoken_posed_nmf_filtered <- spoken_posed_nmf[!spoken_posed_nmf$subject %in% tmp_subj_to_remove, ]%>%
+    subset(expression!= "neutral")
+
+
+spoken_posed_nmf_filtered_agg<- spoken_posed_nmf_filtered%>%
+  group_by(subject, filename, expression,posed_spoken, drug.placebo, cluster_label)%>%
+  summarise_if(is.numeric,mean, na.rm = T)
+
+
+write_csv(spoken_posed_nmf_filtered_agg, "spoken_posed_nmf_filtered_agg.csv")
+
+
+```
+
+
+```{r}
+spoken_posed_nmf_filtered$subject<- as.factor(spoken_posed_nmf_filtered$subject)
+
+
+
+spoken_posed_nmf_filtered$sp_avg
+spoken_posed_nmf_filtered_agg_bysubj<- spoken_posed_nmf_filtered%>%
+  group_by(subject)%>%
+  mutate(peak_speed_norm = normalize_0_1(peak_speed),
+         entropy_clust_normlog = peak_speed/log2(entropy_clust))%>%
+   group_by(subject, expression,posed_spoken,cluster_label)%>%
+  summarise_if(is.numeric, mean, na.rm = T)
+  
+
+
+```
+
+
+speed lmer
+```{r}
+library(lmerTest)
+options(scipen = 999)
+rslt_speedavg<-lmer(speed_avg~ expression*posed_spoken*cluster_label +(1|subject),
+     REML =FALSE,
+     data = spoken_posed_nmf_filtered_agg)
+
+anova(rslt_speedavg)
+
+# Main effects pairwise
+emmeans::emmeans(rslt_speedavg, pairwise~cluster_label, adjust = "bonf")
+emmeans::emmeans(rslt_speedavg, pairwise~expression, adjust = "bonf")
+emmeans::emmeans(rslt_speedavg, pairwise~posed_spoken, adjust = "none")
+
+# two way interactions
+emmeans::emmeans(rslt_speedavg, pairwise~expression|cluster_label, adjust = "bonf")
+emmeans::emmeans(rslt_speedavg, pairwise~expression|posed_spoken, adjust = "bonf")
+emmeans::emmeans(rslt_speedavg, pairwise~cluster_label|posed_spoken, adjust = "bonf")
+
+# three way interactions
+emmeans::emmeans(rslt_speedavg, pairwise~expression|posed_spoken*cluster_label, adjust = "bonf")
+emmeans::emmeans(rslt_speedavg, pairwise~posed_spoken|expression*cluster_label, adjust = "bonf")
+
+anova(rslt_speedavg)
+summary(rslt_speedavg)
+report::report(rslt_speedavg)
+report::report(anova(rslt_speedavg))
+# tmp_emmeans<- emmeans::emmeans(rslt_speedavg, pairwise~expression|posed_spoken*cluster_label, adjust = "bonf")
+# report::report(tmp_emmeans$contrasts)
+
+saveRDS(rslt_speedavg,
+        )
+
+
+saveRDS(rslt_speedavg,
+        file.path(paths$export_models, 
+                  "mod_lmer_speed.rds"))
+```
+
+
+
+
+
+
+# entropy  - correct after fixing issue https://github.com/hcuve/halo_faces/issues/1
+
+```{r}
+library(data.table)
+spoken_posed_nmf_filtered
+spoken_posed_nmf_filtered_agg
+
+library(dplyr)
+library(data.table)  # for rleid
+library(entropy)
+library(GrpString)
+
+
+```
+
+```{r}
+
+spoken_posed_nmf_entropy<- spoken_posed_nmf_filtered%>%
+   
+  group_by(filename) %>%
+  mutate(entropy_clust = entropy::entropy(table(cluster_label))) %>%
+    mutate(entropy_clust_norm =entropy_clust/(log2(3)))
+  spoken_posed_nmf_entropy$trans_entropy
+  
+  
+  spoken_posed_nmf_trans_entropy
+
+```
+
+  
+  cor.test(  spoken_posed_nmf_entropy$entropy_clust_norm,
+             spoken_posed_nmf_trans_entropy$trans_entropy_norm)
+
+
+spoken_posed_nmf_entropy
+# transition entropy correct
+```{r}
+max_transition_entropy <- function(n) {
+  if (n > 1) {
+    return(log2(n * n))
+  } else {
+    return(0)  # If there's only one state, entropy is zero
+  }
+}
+
+log2(9)
+log2(3)
+max_transition_entropy(3)
+
+# Function to normalize transition entropy
+normalize_transition_entropy <- function(entropy, n_states) {
+  return(entropy / max_transition_entropy(n_states))
+}
+n_states = 3
+
+
+spoken_posed_nmf_trans_entropy<- spoken_posed_nmf_filtered%>%
+    subset(expression!= "neutral")%>%
+      group_by(filename, expression, subject,posed_spoken) %>%
+      # keep just the initial of the cluster label, to avoid the actual words affecting entropy calculation
+      summarise(cluster_label_combined = paste(substr(cluster_label, 1, 1), collapse = ""), .groups = 'drop')%>%
+  group_by(filename)%>%
+      # Compute transition entropy
+      mutate(trans_entropy = GrpString::TransEntro(cluster_label_combined),
+             trans_entropy_perclust_res = GrpString::TransEntropy(cluster_label_combined),
+             trans_entropy_perclust_vec = GrpString::TransEntropy(cluster_label_combined)[,2]
+         )%>%
+  mutate(trans_entropy_norm=normalize_transition_entropy(trans_entropy, n_states))%>%
+  ungroup()
+
+
+
+
+```
+
+
+
+lmer entropy
+
+
+entropy
+
+```{r}
+
+# stationary entropy
+spoken_posed_nmf_entropy #stat
+spoken_posed_nmf_trans_entropy
+
+spoken_posed_nmf_entropy$subject <- as.factor(spoken_posed_nmf_entropy$subject)
+
+rslt_stat_entropy<-lmer(log1p(entropy_clust_norm+.01)~ expression*posed_spoken +(1+posed_spoken+expression|subject),
+     REML =FALSE,
+     data = spoken_posed_nmf_entropy%>%
+       subset(expression!= "neutral"))
+
+qqnorm(resid(rslt_stat_entropy))
+summary(rslt_stat_entropy)
+anova(rslt_stat_entropy)
+
+
+summary(rslt_stat_entropy)
+
+
+
+emmeans::emmeans(rslt_stat_entropy, pairwise~expression, adjust = "bonf")
+emmeans::emmeans(rslt_stat_entropy, pairwise~posed_spoken)
+
+emmeans::emmeans(rslt_stat_entropy, pairwise~expression|posed_spoken, adjust = "holm")
+# install.packages("report")
+options(scipen = 999)
+report::report(rslt_stat_entropy)
+report::report(anova(rslt_stat_entropy))
+
+rslt_stat_entropy
+
+
+# rslt_stat_entropy@frame you can find the data here
+saveRDS(rslt_stat_entropy,
+        file.path(paths$export_models, 
+                  "mod_lmer_stat_entropy.rds"))
+```
+
+
+We fitted a linear mixed model (estimated using ML and nloptwrap optimizer) to predict entropy_clust_norm with expression and posed_spoken (formula:
+sqrt(entropy_clust_norm + 0.1) ~ expression * posed_spoken). The model included posed_spoken as random effects (formula: ~1 + posed_spoken | subject).
+The model's total explanatory power is substantial (conditional R2 = 0.44) and the part related to the fixed effects alone (marginal R2) is of 0.27.
+The model's intercept, corresponding to expression = angry and posed_spoken = posed, is at 0.81 (95% CI [0.81, 0.82], t(40739) = 276.12, p < .001).
+Within this model:
+
+  - The effect of expression [happy] is statistically significant and negative (beta = -3.39e-03, 95% CI [-4.46e-03, -2.32e-03], t(40739) = -6.19, p <
+.001; Std. beta = -0.02, 95% CI [-0.03, -0.02])
+  - The effect of expression [sad] is statistically significant and negative (beta = -4.48e-03, 95% CI [-5.55e-03, -3.40e-03], t(40739) = -8.18, p <
+.001; Std. beta = -0.02, 95% CI [-0.03, -0.02])
+  - The effect of posed spoken [spoken] is statistically significant and positive (beta = 0.04, 95% CI [0.03, 0.05], t(40739) = 10.22, p < .001; Std.
+beta = 0.23, 95% CI [0.18, 0.28])
+  - The effect of expression [happy] × posed spoken [spoken] is statistically significant and negative (beta = -7.82e-03, 95% CI [-9.34e-03, -6.30e-03],
+t(40739) = -10.09, p < .001; Std. beta = -0.03, 95% CI [-0.04, -0.02])
+  - The effect of expression [sad] × posed spoken [spoken] is statistically significant and positive (beta = 9.50e-03, 95% CI [7.98e-03, 0.01], t(40739)
+= 12.26, p < .001; Std. beta = 0.05, 95% CI [0.05, 0.06])
+
+Standardized parameters were obtained by fitting the model on a standardized version of the dataset. 95% Confidence Intervals (CIs) and p-values were
+computed using a Wald t-distribution approximation.
+
+The ANOVA suggests that:
+
+  - The main effect of expression is statistically significant and large (F(2) = 3.29, p = 0.049; Eta2 (partial) = 0.16, 95% CI [2.30e-04, 1.00])
+  - The main effect of posed_spoken is statistically significant and large (F(1) = 110.07, p < .001; Eta2 (partial) = 0.76, 95% CI [0.64, 1.00])
+  - The interaction between expression and posed_spoken is statistically significant and small (F(2) = 315.65, p < .001; Eta2 (partial) = 0.02, 95% CI
+[0.01, 1.00])
+
+transition entropy (main for the paper) lmer
+
+```{r}
+rslt_trans_entropy<-lmer(log1p(trans_entropy_norm+.01)~ expression*posed_spoken +(1+posed_spoken|subject),
+     REML =FALSE,
+     data = spoken_posed_nmf_trans_entropy%>%
+       subset(expression!= "neutral"))
+
+
+plot(rslt_trans_entropy)
+qqnorm(resid(rslt_trans_entropy))
+qqline(resid(rslt_trans_entropy))
+summary(rslt_trans_entropy)
+anova(rslt_trans_entropy)
+
+
+summary(rslt_trans_entropy)
+
+
+
+emmeans::emmeans(rslt_trans_entropy, pairwise~expression, adjust = "bonf")
+emmeans::emmeans(rslt_trans_entropy, pairwise~posed_spoken)
+
+emmeans::emmeans(rslt_trans_entropy, pairwise~expression|posed_spoken, adjust = "holm")
+# install.packages("report")
+report::report(rslt_trans_entropy)
+report::report(anova(rslt_trans_entropy))
+
+
+
+
+saveRDS(rslt_trans_entropy,
+        file.path(paths$export_models, 
+                  "mod_lmer_trans_entropy.rds"))
+```
+
+We fitted a linear mixed model (estimated using ML and nloptwrap optimizer) to predict trans_entropy_norm with expression and posed_spoken (formula:
+log1p(trans_entropy_norm + 0.01) ~ expression * posed_spoken). The model included posed_spoken as random effects (formula: ~1 + posed_spoken |
+subject). The model's total explanatory power is substantial (conditional R2 = 0.63) and the part related to the fixed effects alone (marginal R2) is
+of 0.57. The model's intercept, corresponding to expression = angry and posed_spoken = posed, is at 0.43 (95% CI [0.42, 0.44], t(398) = 65.64, p <
+.001). Within this model:
+
+  - The effect of expression [happy] is statistically non-significant and negative (beta = -9.76e-03, 95% CI [-0.03, 5.49e-03], t(398) = -1.26, p =
+0.209; Std. beta = -0.03, 95% CI [-0.08, 0.01])
+  - The effect of expression [sad] is statistically significant and positive (beta = 0.02, 95% CI [1.81e-03, 0.03], t(398) = 2.20, p = 0.028; Std. beta =
+0.05, 95% CI [8.09e-03, 0.10])
+  - The effect of posed spoken [spoken] is statistically significant and positive (beta = 0.11, 95% CI [0.10, 0.13], t(398) = 13.53, p < .001; Std. beta
+= 0.33, 95% CI [0.28, 0.38])
+  - The effect of expression [happy] × posed spoken [spoken] is statistically non-significant and negative (beta = -2.51e-03, 95% CI [-0.02, 0.02],
+t(398) = -0.23, p = 0.819; Std. beta = 2.98e-03, 95% CI [-0.06, 0.07])
+  - The effect of expression [sad] × posed spoken [spoken] is statistically non-significant and negative (beta = -2.10e-03, 95% CI [-0.02, 0.02], t(398)
+= -0.19, p = 0.848; Std. beta = -0.01, 95% CI [-0.08, 0.05])
+
+
+
+
+
+
+The ANOVA suggests that:
+
+  - The main effect of expression is statistically significant and medium (F(2) = 12.27, p < .001; Eta2 (partial) = 0.07, 95% CI [0.03, 1.00])
+  
+  
+  - The main effect of posed_spoken is statistically significant and large 
+  (F(1) = 429.10, p < .001; Eta2 (partial) = 0.93, 95% CI [0.89, 1.00])
+  
+  - The interaction between expression and posed_spoken is statistically not significant and very small (F(2) = 0.03, p = 0.970; Eta2 (partial) =
+1.77e-04, 95% CI [0.00, 1.00])
+
+Standardized parameters were obtained by fitting the model on a standardized version of the dataset. 95% Confidence Intervals (CIs) and p-values were
+computed using a Wald t-distribution approximation.
+
+
+
+$emmeans
+ expression emmean      SE  df lower.CL upper.CL
+ angry       0.486 0.00478 108    0.476    0.495
+ happy       0.475 0.00478 108    0.465    0.484
+ sad         0.502 0.00478 108    0.492    0.511
+
+Results are averaged over the levels of: posed_spoken 
+Degrees-of-freedom method: kenward-roger 
+Results are given on the log1p(mu + 0.01) (not the response) scale. 
+Confidence level used: 0.95 
+
+$contrasts
+ contrast      estimate      SE  df t.ratio p.value
+ angry - happy    0.011 0.00552 344   1.996  0.1401
+ angry - sad     -0.016 0.00552 344  -2.901  0.0119
+ happy - sad     -0.027 0.00552 344  -4.897  <.0001
+
+Results are averaged over the levels of: posed_spoken 
+Note: contrasts are still on the log1p(mu + 0.01) scale 
+Degrees-of-freedom method: kenward-roger 
+P value adjustment: bonferroni method for 3 tests 
+eigen(rslt_trans_entropy)
+
+  
+summary(rslt_trans_entropy)
+
+
+

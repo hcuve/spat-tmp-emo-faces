@@ -1,0 +1,1088 @@
+---
+title: " Emotive speech mts feature and classification analysis"
+author: "Helio"
+output: html_document
+---
+
+# Split data
+
+
+```{r}
+library(NMF)
+library(caret)
+library(randomForest)
+library(tidyverse)
+
+```
+
+
+
+```{r}
+# excluding neutral to keep it consistent with expression only
+df_OF_output_AUsW_unblind_spoken1_binned_no_neutr<-
+  df_OF_output_AUsW_unblind_spoken1_binned%>%
+  subset(expression!= "neutral")%>%
+  mutate(expression = factor(expression))
+
+df_OF_output_AUsW_unblind_spoken1_binned_no_neutr
+
+
+# Count unique filenames for each expression
+expression_counts <- df_OF_output_AUsW_unblind_spoken1_binned_no_neutr %>%
+  group_by(filename, expression) %>%
+  summarize(count = n(), .groups = 'drop') %>%
+  group_by(expression) %>%
+  summarize(unique_files = n())
+
+expression_counts
+
+# Calculate the desired number of files for each expression in test set
+test_size_ratio <- 0.2  # Adjust as needed
+desired_test_counts <- floor(expression_counts$unique_files * test_size_ratio)
+
+# Function to split files for a single expression level
+split_files <- function(files, n) {
+  set.seed(42)  # For reproducibility
+  sample(files, n)
+}
+
+# Split files for each expression level
+split_result_spk <- df_OF_output_AUsW_unblind_spoken1_binned_no_neutr %>%
+  group_by(expression) %>%
+  summarize(
+    test_files = list(split_files(unique(filename), 
+                                  desired_test_counts[cur_group_id()])),
+    .groups = 'drop'
+  )
+
+
+# Combine all test files
+all_test_files <- unlist(split_result_spk$test_files)
+
+# Create train and test dataframes
+dta_spk_test <- df_OF_output_AUsW_unblind_spoken1_binned_no_neutr %>% filter(filename %in% all_test_files)
+
+dta_spk_train <- df_OF_output_AUsW_unblind_spoken1_binned_no_neutr %>% filter(!(filename %in% all_test_files))
+
+# Verify the split
+cat("Train set size:", nrow(dta_spk_train), "\n")
+cat("Test set size:", nrow(dta_spk_test), "\n")
+cat("Unique filenames in train:", length(unique(dta_spk_train$filename)), "\n")
+cat("Unique filenames in test:", length(unique(dta_spk_test$filename)), "\n")
+
+# Check expression distribution
+cat("\nExpression distribution in train:\n")
+print(table(dta_spk_train$expression))
+cat("\nExpression distribution in test:\n")
+print(table(dta_spk_test$expression))
+
+# Check unique filenames per expression
+cat("\nUnique filenames per expression in train:\n")
+print(dta_spk_train %>% group_by(expression) %>% summarize(unique_files = n_distinct(filename)))
+cat("\nUnique filenames per expression in test:\n")
+print(dta_spk_test %>% group_by(expression) %>% summarize(unique_files = n_distinct(filename)))
+
+unique(df_OF_output_AUsW_unblind_spoken1_binned_no_neutr$filename)
+intersect(unique(dta_spk_test$filename),
+unique(dta_spk_train$filename))
+
+```
+
+
+
+```{r}
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_no_neutr)
+colnames(dta_spk_train)
+
+
+
+
+df_OF_output_AUsW_unblind_spoken1_binned_train <-dta_spk_train
+df_OF_output_AUsW_unblind_spoken1_binned_test <-dta_spk_test
+
+
+
+table(factor(df_OF_output_AUsW_unblind_spoken1_binned_no_neutr$expression))
+table(factor(df_OF_output_AUsW_unblind_spoken1_binned_train$expression))
+table(factor(df_OF_output_AUsW_unblind_spoken1_binned_test$expression))
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train)
+
+
+saveRDS(df_OF_output_AUsW_unblind_spoken1_binned_train[,select_au_and_id_cols],
+        file.path(paths$export_data, 
+                  "dta_spk_4nmf_train.rds"))
+saveRDS(df_OF_output_AUsW_unblind_spoken1_binned_train[,select_au_and_id_cols],
+        file.path(paths$export_data, 
+                  "dta_spk_4nmf_test.rds"))
+
+
+
+```
+# differences between rows reflect duration differences
+
+
+```{r}
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train)
+unique(df_OF_output_AUsW_unblind_spoken1_binned_train$expression)
+
+
+res_k3_spoken1_train <- NMF::nmf(df_OF_output_AUsW_unblind_spoken1_binned_train[,17:33]+.0001, r = 3, 
+                  nrun = 15, #number of runs to try and update for
+                  seed=123456, #specific seed for reproducibility
+                 .options = list( 'v')) #verbose
+
+
+saveRDS(res_k3_spoken1_train,
+        file.path(paths$export_models, 
+                  "mod_rslt_spk_nmf_train.rds"))
+
+# fist make sure it matches the posed order we are using in the paper
+# remeber we did this to rthe original to match
+# justr eordering based on how we describe in the paper and tio match the order of the 
+# spoken_NMF$k3_comp1<- res_k3_spoken1@fit@W[,2]
+# spoken_NMF$k3_comp2<- res_k3_spoken1@fit@W[,1]
+# spoken_NMF$k3_comp3<- res_k3_spoken1@fit@W[,3]
+
+
+coefmap(res_k3)
+coefmap(res_k3_spoken1)
+coefmap(res_k3_spoken1_train)
+
+
+as.data.frame(res_k3@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+# similar to final plot
+
+
+as.data.frame(res_k3_spoken1@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+as.data.frame(res_k3_spoken1_train@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+
+```
+
+res_k3_spoken1_train
+```{r}
+# has a similar pattern to spoken NMF so reorder accordingly
+df_OF_output_AUsW_unblind_spoken1_binned_train$k3_comp1<- res_k3_spoken1_train@fit@W[,2]
+df_OF_output_AUsW_unblind_spoken1_binned_train$k3_comp2<- res_k3_spoken1_train@fit@W[,1]
+df_OF_output_AUsW_unblind_spoken1_binned_train$k3_comp3<- res_k3_spoken1_train@fit@W[,3]
+
+
+
+
+# cant figure out how to project so for now we will simply run separate NMF on the test set
+rm(res_k3_spoken1_test)
+
+
+
+```
+
+
+
+# Project test data onto the NMF components from the training data
+# Load NMF package
+library(NMF)
+```{r}
+# Fit NMF model on the training data
+# W time
+W_spk_train <- basis(res_k3_spoken1_train)  # Basis matrix (components)
+H_spk_train <- coef(res_k3_spoken1_train)   # Coefficient matrix (representation of training data)
+
+nrow(W_spk_train)
+nrow(df_OF_output_AUsW_unblind_spoken1_binned_test)
+
+res_k3_spoken1_test_proje<- nmf(df_OF_output_AUsW_unblind_spoken1_binned_test[,17:33]+.0001, 
+         H = H_spk_train, # we actually want to use H
+         rank= 3,
+          seed=123456,
+         # method = "lee", 
+         nrun = 1)
+
+res_k3_spoken1_test_proje
+
+ saveRDS(res_k3_spoken1_test_proje,
+         file.path(paths$export_models, 
+                   "mod_rslt_spk_nmf_test.rds"))
+
+# checkl the order and match to posed
+
+coefmap(res_k3)
+coefmap(res_k3_spoken1)
+coefmap(res_k3_spoken1_train)
+coefmap(res_k3_spoken1_test_proje)
+
+
+as.data.frame(res_k3@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+# similar to final plot
+
+
+as.data.frame(res_k3_spoken1@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+as.data.frame(res_k3_spoken1_train@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+as.data.frame(res_k3_spoken1_test_proje@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+dta_spk_test_proje_reconstr<- fitted(res_k3_spoken1_test_proje)
+
+dta_spk_test_proje_reconstr<- as.data.frame(dta_spk_test_proje_reconstr)
+
+  colnames(dta_spk_test_proje_reconstr)
+  
+    # df_OF_output_AUsW_unblind_spoken1_binned_test$k3_comp1
+  dta_spk_test_proje_reconstr$k3_comp1<-   res_k3_spoken1_test_proje@fit@W[,2]
+  dta_spk_test_proje_reconstr$k3_comp2<-   res_k3_spoken1_test_proje@fit@W[,1]
+  dta_spk_test_proje_reconstr$k3_comp3<-   res_k3_spoken1_test_proje@fit@W[,3]
+  
+  
+  
+
+  # has a similar pattern to spoken NMF so reorder accordingly
+# here keep a direct match as we fixed above
+df_OF_output_AUsW_unblind_spoken1_binned_test$k3_comp1<-   dta_spk_test_proje_reconstr$k3_comp1
+df_OF_output_AUsW_unblind_spoken1_binned_test$k3_comp2<-   dta_spk_test_proje_reconstr$k3_comp2
+df_OF_output_AUsW_unblind_spoken1_binned_test$k3_comp3<-   dta_spk_test_proje_reconstr$k3_comp3
+
+
+  cor.test(df_OF_output_AUsW_unblind_spoken1_binned_test$k3_comp1,
+           res_k3_spoken1_test_proje@fit@W[,2])
+```
+
+
+# Compare reconstructed with original test data
+
+
+
+
+```{r}
+
+colnames(dta_spk_test_proje_reconstr)
+dta_spk_test_proje_reconstr<- as.data.frame(dta_spk_test_proje_reconstr)
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_test[,c(1:3,10)])
+
+dta_spk_test_proje_reconstr[,21:24]<-
+  df_OF_output_AUsW_unblind_spoken1_binned_test[,c(1:3,10)]
+
+colnames(dta_spk_test_proje_reconstr)
+
+
+# compare reconstructed AUS from projection to original AUS in the test set
+colnames(dta_spk_test_proje_reconstr)
+dta_spk_test_proje_reconstr[,c(1:17,21:24)]%>%
+  gather(au,values,-filename, -bin_frame, -subject, -expression)%>%
+   # mutate(values = values+.0001)%>%
+   group_by(subject, au)%>%
+    mutate(values = maxnormalize(values))%>%
+  ggplot(aes(bin_frame, values,colour = au))+
+  geom_smooth()+
+  facet_wrap(~expression)
+  
+  # colnames(df_OF_output_AUsW_unblind_spoken1_binned_test)
+  df_OF_output_AUsW_unblind_spoken1_binned_test[,c(1:3,10,17:33)]%>%
+  gather(au,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values = values+.0001)%>%
+   group_by(subject, au)%>%
+    mutate(values = maxnormalize(values))%>%
+  ggplot(aes(bin_frame, values,colour = au))+
+  geom_smooth()+
+  facet_wrap(~expression)
+
+```
+  # the patterns are similar so the reconstruction works
+  
+
+
+# compare projected timeseries components with test fitted directly
+  
+```{r}
+  colnames(dta_spk_test_proje_reconstr)
+  dta_spk_test_proje_reconstr[,18:24]%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values)%>%
+  group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+  
+  colnames(df_OF_output_AUsW_unblind_spoken1_binned_test)
+  
+  df_OF_output_AUsW_unblind_spoken1_binned_test[,c(1:3,10,34:36)]%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values = values+.0001)%>%
+    group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+  
+  
+  # colnames(df_OF_output_AUsW_unblind_spoken1_binned_train)
+   df_OF_output_AUsW_unblind_spoken1_binned_train[,c(1:3,10,34:36)]%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values = values+.0001)%>%
+    group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+  
+  
+  # for simplicity lets keep it in the original test set
+  # but if we need to verify reconstruction come back here
+  
+
+
+
+```
+# Extract features
+The primary reason we split before scaling is to prevent data leakage. Data leakage happens when information from outside the training
+
+check this: PCA_maxnormpsych - for posed
+
+```{r}
+# df_OF_output_AUsW_unblind_spoken1_binned_test
+df_OF_output_AUsW_unblind_spoken1_binned_test$train_test<- "test"
+df_OF_output_AUsW_unblind_spoken1_binned_train$train_test<- "train"
+
+# do the scaling separately
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind<- bind_rows(df_OF_output_AUsW_unblind_spoken1_binned_train,
+          df_OF_output_AUsW_unblind_spoken1_binned_test)
+
+
+library(CMFMTS)
+
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind)
+unique(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind$posed.spoken)
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind[,c(1:3,9:12,37:38,34:36)])
+
+# gather components on train and test sets
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts<- gather(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind[,c(1:3,9:12, 37:38, 34:36)], 
+                                                                         key = "nm_comp", 
+                                                                         value = "nmf_comp_value", 
+                                                                         - c(1:9))
+
+unique(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$nm_comp)
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts)
+
+# create a timeseries unique? for traina nd test sets
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$time_unq <- paste0(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$filename,                             paste0(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$nm_comp))
+
+unique(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$time_unq)
+
+range(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$frame)
+
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts)
+
+# now dcast such that each row is a timeseriies
+# spoken_dcast_formts_maxnorm
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts
+
+
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$nmf_comp_value))
+
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts$bin_frame))
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2 
+
+
+  
+  df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2<-
+  df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts%>%
+  arrange(filename,nm_comp,bin_frame)%>%
+  group_by(filename,nm_comp)%>%
+  mutate(bin_frame = paste0("t_", paste0(bin_frame)))%>%
+  ungroup() %>% 
+
+    # table(is.na(tmp_test$nmf_comp_value)) false
+  
+ data.table::dcast(time_unq+filename+train_test+subject+
+                     expression+drug.placebo+nm_comp~bin_frame, value.var = "nmf_comp_value",
+                       fun.aggregate = mean)%>%
+  ungroup()
+
+
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2$t_1))
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2$t_100))
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2$t_20))
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2$t_21))
+
+
+# df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts%>%
+#   subset(filename== "./cut_spoken_happy_day2_p24.csv")
+#   subset(bin_frame == 21)
+
+  
+ 
+```
+
+
+
+
+# Apply CMSFS
+
+```{r}
+# can apply ont hw whoel dataset and then just split into train and test before the PCA while scaline se[aeatelly]
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2)
+
+
+# ?CMFMTS::cmfmts
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2)
+# order the timeseries by time
+  df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2<- bind_cols(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2[,1:7], df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2[,c(ts_order)])
+
+
+
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2$t_1))
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2$t_50))
+
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2))
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2
+
+
+
+# nas come from the cut fucntion just fill them before the next step
+
+
+# Sample data frame
+df <- data.frame(
+  col1 = c(1, 2, NA, 4, 5),
+  col2 = c(5, 6, 7, NA, 8),
+  col3 = c(9, NA, 11, 12, 13)
+)
+
+# Function to fill NA with mean of adjacent columns
+# Function to fill NA with mean of adjacent columns or repeat adjacent value
+fill_na_with_mean_or_repeat <- function(df) {
+  # Handle NA in the first column
+  if(any(is.na(df[, 1]))) {
+    df[is.na(df[, 1]), 1] <- df[is.na(df[, 1]), 2]
+  }
+  
+  # Handle NA in the last column
+  if(any(is.na(df[, ncol(df)]))) {
+    df[is.na(df[, ncol(df)]), ncol(df)] <- df[is.na(df[, ncol(df)]), ncol(df) - 1]
+  }
+  
+  # Handle NA in the middle columns
+  for (i in 2:(ncol(df) - 1)) {
+    na_indices <- is.na(df[, i])
+    df[na_indices, i] <- rowMeans(df[na_indices, c(i - 1, i + 1)], na.rm = TRUE)
+  }
+  
+  return(df)
+}
+
+# Apply the function
+df_filled <- fill_na_with_mean_adjacent(df)
+df
+df_filled2 <- fill_na_with_mean_or_repeat(df)
+print(df_filled)
+df
+df_filled
+df_filled2
+# this works
+
+# first reorder the data
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2)
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2[,8:107])
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona<-
+  df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2
+  
+
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona[,8:107]<-
+fill_na_with_mean_or_repeat(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona[,8:107])
+
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2))
+table(is.na(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona))
+head(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2[,7:107])
+
+head(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona[,7:107])
+```
+# Apply the function
+
+
+```{r}
+df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona
+
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona)
+# fit spoken time feature extraction
+?CMFMTS::cmfmts
+
+# we dont want to scale to avoid data leakage from train to test
+# altoigh this scale likely applies to each timeseries alone
+
+unique(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona$filename)
+
+# npote when NA = F and scale  = T, if scle create NAS this will remove these rows in the ouput, bit
+
+
+
+spoken_cfmts <- CMFMTS::cmfmts(dataset = df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona[,8:107],
+                               scale = F,
+                na = T)
+
+table(is.na(spoken_cfmts))
+ nrow(spoken_cfmts)
+
+# [1] 684 this matches the data
+ 
+  # nrow(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona)
+# 684
+
+
+
+spoken_cfmts
+# npot muc difference between scaled and non scaled
+# now split  back to scale
+colnames(spoken_cfmts)
+colnames(df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona)
+
+# spoken_cfmts<- spoken_cfmts[,1:41]
+
+spoken_cfmts[,42:48] <- df_OF_output_AUsW_unblind_spoken1_binned_train_test_bind_4cmfts2_nona[,1:7]
+
+colnames(spoken_cfmts)
+
+
+spoken_cfmts$filename
+
+colnames(spoken_cfmts)
+
+saveRDS(spoken_cfmts[,c(1:43,45)],
+        file.path(paths$export_data, 
+                  "dta_rslt_spk_cmfts.rds"))
+
+```
+
+PCA on cmfts features spoken
+```{r}
+
+colnames(spoken_cfmts)
+
+
+# remove zero sd
+
+spoken_cfmts
+
+ # drop columns with zero SD
+
+# Calculate the sd for the selected columns
+# Identify the numerical columns
+colnames(spoken_cfmts)
+?apply
+
+sd_values <- apply(spoken_cfmts[, 1:41], 
+                   MARGIN = 2, sd, na.rm = T) # 2 chooses columns and 2 chooses rows
+
+
+# Identify the columns with a standard deviation of zero
+zero_sd_cols <- names(which(sd_values == 0))
+# zero_sd_cols
+# [1] "length"          "nperiods"        "seasonal_period"
+
+# Drop the columns with a standard deviation of zero
+spoken_cfmts <- spoken_cfmts%>%select(-zero_sd_cols)
+colnames(spoken_cfmts)
+spoken_cfmts
+
+table(is.na(spoken_cfmts))
+# FALSE 
+# 30780 
+spoken_cfmts
+
+
+# Replace NA values with the column average
+colnames(spoken_cfmts)
+col_mts_sel<-colnames(spoken_cfmts[,1:38])
+
+# 
+table(is.na(spoken_cfmts))
+
+# dcast
+colnames(spoken_cfmts)
+library(data.table)
+ 
+
+spoken_cfmts_4_pca <-
+setDT(spoken_cfmts)%>%
+  select(-time_unq)%>%
+  ungroup()%>%
+   gather(ts_features, values, -filename,- subject, -expression,-drug.placebo, -nm_comp,-train_test)%>%
+  mutate(ts_features_k =  paste0(ts_features, nm_comp))%>%
+  # mutate(bin_frame = paste0("t_", paste0(bin_frame)))%>%
+ data.table::dcast(filename +train_test+ subject+expression+drug.placebo ~ ts_features_k, value.var = "values", sep = "")%>%
+  ungroup()
+
+table(is.na(spoken_cfmts_4_pca))
+
+# FALSE 
+# 27132
+colnames(spoken_cfmts_4_pca)
+
+spoken_cfmts_4_pca
+
+# now split into train and test set features
+spoken_cfmts_4_pca_train<- spoken_cfmts_4_pca%>%
+  subset(train_test == "train")
+
+spoken_cfmts_4_pca_test<- spoken_cfmts_4_pca%>%
+  subset(train_test != "train")
+
+
+
+colnames(spoken_cfmts_4_pca_train)
+# install.packages("psych")
+
+# we cant scvale PCA by subject because we dont have anopiugh data
+
+# we can do overalls cale in the PCA itself
+spoken_pca_cfmts_train <- prcomp(spoken_cfmts_4_pca_train[,c(6:119)],
+                                 rank =3, 
+                                 center = T,
+                                 scale. = T)
+
+
+
+saveRDS(spoken_pca_cfmts_train,
+         file.path(paths$export_models, 
+                   "mod_rslt_spk_pca_cmfts_train.rds"))
+spk_loadings <- spoken_pca_cfmts_train$rotation
+
+# Identify the names of the variables with the highest loadings for each component
+spk_dominant_vars <- apply(abs(spk_loadings), 2, function(x) {
+  # Get the names of the variables with the highest loadings
+  names(sort(x, decreasing = TRUE)[1:3])  # Top 3 contributing variables
+})
+
+
+spk_dominant_vars 
+spk_dominant_vars 
+#      PC1                        PC2                   PC3                  
+# [1,] "skewnessk3_comp2"         "x_acf1k3_comp1"      "trendk3_comp3"      
+# [2,] "spectral_entropyk3_comp2" "trendk3_comp1"       "unitroot_ppk3_comp3"
+# [3,] "diff1_acf1k3_comp2"       "unitroot_ppk3_comp1" "entropyk3_comp3"
+
+
+ # now we can use these ti name the PCs so that it matches the NMF data
+# PC1 = comp2
+# PC2 = comp1
+# PC3 = comp3
+
+range(spoken_pca_cfmts_train$x[,2])
+range(spoken_pca_cfmts_train$x[,1])
+range(spoken_pca_cfmts_train$x[,3])
+
+# project PCA to test set
+# note the predict will apply the same scaling and centering of the train set
+colnames(spoken_cfmts_4_pca_test)
+
+spoken_pca_cfmts_test <- predict(spoken_pca_cfmts_train, spoken_cfmts_4_pca_test[,c(6:119)])
+
+saveRDS(spoken_pca_cfmts_test,
+         file.path(paths$export_models, 
+                   "mod_rslt_spk_pca_cmfts_test_proj.rds"))
+
+# there an outlier in test set
+range(spoken_pca_cfmts_test[,1])
+range(spoken_pca_cfmts_test[,2])
+range(spoken_pca_cfmts_test[,3])
+
+```
+
+# Train Random Forest
+
+
+```{r}
+unique(spoken_cfmts_4_pca_train$expression)
+
+#      PC1                        PC2                   PC3                  
+# [1,] "skewnessk3_comp2"         "x_acf1k3_comp1"      "trendk3_comp3"      
+# [2,] "spectral_entropyk3_comp2" "trendk3_comp1"       "unitroot_ppk3_comp3"
+# [3,] "diff1_acf1k3_comp2"       "unitroot_ppk3_comp1" "entropyk3_comp3"
+
+
+ # now we can use these ti name the PCs so that it matches the NMF data
+# PC1 = comp2
+# PC2 = comp1
+# PC3 = comp3
+
+
+spoken_cfmts_4_pca_train$comp1<- spoken_pca_cfmts_train$x[,2]
+spoken_cfmts_4_pca_train$comp2<- spoken_pca_cfmts_train$x[,1]
+spoken_cfmts_4_pca_train$comp3<- spoken_pca_cfmts_train$x[,3]
+
+# range( spoken_pca_cfmts_test[,1])
+spoken_cfmts_4_pca_test$comp1<- spoken_pca_cfmts_test[,2]
+spoken_cfmts_4_pca_test$comp2<- spoken_pca_cfmts_test[,1]
+spoken_cfmts_4_pca_test$comp3<- spoken_pca_cfmts_test[,3]
+
+range(spoken_cfmts_4_pca_test$comp3)
+spoken_cfmts_4_pca_test%>%
+  subset(comp3> (200))
+  ggplot(aes(PC3))+
+  geom_histogram()
+
+# cut_spoken_happy_day1_p17
+# ./cut_spoken_happy_day1_p17.csv #outlier
+
+
+```
+
+
+```{r}
+# we need to scale because the PCA space is vast and we didn scale before PCA
+spoken_cfmts_4_pca_train<- spoken_cfmts_4_pca_train%>%
+  ungroup()%>%
+  # group_by(subject)%>% oky a few
+  mutate(comp1_scale = scale(comp1)[,1],
+         comp2_scale = scale(comp2)[,1],
+         comp3_scale = scale(comp3)[,1])
+
+# scaling again reduces distortions of PCA
+
+# Assuming `spoken_cfmts_4_pca_train` is your training dataset
+
+# Extract scaling parameters for each of the columns you scaled
+comp1_mean_spk <- mean(spoken_cfmts_4_pca_train$comp1)
+comp1_sd_spk <- sd(spoken_cfmts_4_pca_train$comp1)
+
+comp2_mean_spk <- mean(spoken_cfmts_4_pca_train$comp2)
+comp2_sd_spk <- sd(spoken_cfmts_4_pca_train$comp2)
+
+comp3_mean_spk <- mean(spoken_cfmts_4_pca_train$comp3)
+comp3_sd_spk <- sd(spoken_cfmts_4_pca_train$comp3)
+# Assuming `spoken_cfmts_4_pca_test` is your test dataset
+
+spoken_cfmts_4_pca_test <- spoken_cfmts_4_pca_test %>%
+  mutate(comp1_scale = (comp1 - comp1_mean_spk) / comp1_sd_spk,
+         comp2_scale = (comp2 - comp2_mean_spk) / comp2_sd_spk,
+         comp3_scale = (comp3 - comp3_mean_spk) / comp3_sd_spk)
+
+range(spoken_cfmts_4_pca_test$comp1_scale)
+range(spoken_cfmts_4_pca_test$comp2_scale)
+range(spoken_cfmts_4_pca_test$comp3_scale)
+
+
+
+mod_rf_spk_mts_train <- train(expression ~ comp1_scale + comp2_scale + comp3_scale,
+                data = spoken_cfmts_4_pca_train,
+               # data = spoken_train_set,
+                method = "rf",
+                trControl = trainControl(method = "oob"),
+               # tuneGrid = data.frame(mtry = 6),
+                # preProcess = c("center", "scale"), #dont scale here just uses scaled variables
+                ntree = 500) # tunig trees is not common
+
+
+saveRDS(mod_rf_spk_mts_train,
+         file.path(paths$export_models, 
+                   "mod_rf_spk_train.rds"))
+
+mod_rf_spk_mts_train$bestTune
+
+rf_model <- mod_rf_spk_mts_train$finalModel
+
+# Extract OOB error
+oob_error <- rf_model$err.rate[, "OOB"]
+
+# Plot OOB error by the number of trees
+plot(1:length(oob_error), oob_error, type = "l",
+     xlab = "Number of Trees", ylab = "OOB Error",
+     main = "OOB Error by Number of Trees")
+  # Add a vertical line at x = 30
+abline(v = 30, col = "red", lty = 2, lwd = 2)
+
+# 500 is more than fine
+# to chose the best tree we just need a value where the error plateo
+
+
+# Evaluate on test set
+spoken_cfmts_4_pca_test
+mod_rf_spk_mts_train
+mod_rf_spk_mts_train$call
+
+# spoken_cfmts_4_pca_test$PC3_scale
+
+mod_rf_spk_mts_train$call
+# train.formula(form = expression ~ comp1_scale + comp2_scale + 
+#     comp3_scale, data = spoken_cfmts_4_pca_train, method = "rf", 
+#     trControl = trainControl(method = "oob"), ntree = 500)
+colnames(spoken_cfmts_4_pca_test)
+
+spoken_cfmts_4_pca_test$prediction <- factor(predict(mod_rf_spk_mts_train, spoken_cfmts_4_pca_test))
+
+
+
+spoken_test_set_res_mts_no_neutr<- confusionMatrix(spoken_cfmts_4_pca_test$prediction, 
+                spoken_cfmts_4_pca_test$expression)
+
+
+saveRDS(spoken_test_set_res_mts_no_neutr, 
+        file.path(paths$export_models, "mod_rf_rslt_spk_mts_test.Rds"))
+
+spoken_test_set_res_mts_no_neutr
+
+```
+
+Confusion Matrix and Statistics
+
+          Reference
+Prediction angry happy sad
+     angry     8     2   4
+     happy     0    13   1
+     sad       7     0  10
+
+Overall Statistics
+                                          
+               Accuracy : 0.6889          
+                 95% CI : (0.5335, 0.8183)
+    No Information Rate : 0.3333          
+    P-Value [Acc > NIR] : 0.000001176     
+                                          
+                  Kappa : 0.5333          
+                                          
+ Mcnemar's Test P-Value : 0.2818          
+
+Statistics by Class:
+
+                     Class: angry Class: happy Class: sad
+Sensitivity                0.5333       0.8667     0.6667
+Specificity                0.8000       0.9667     0.7667
+Pos Pred Value             0.5714       0.9286     0.5882
+Neg Pred Value             0.7742       0.9355     0.8214
+Prevalence                 0.3333       0.3333     0.3333
+Detection Rate             0.1778       0.2889     0.2222
+Detection Prevalence       0.3111       0.3111     0.3778
+Balanced Accuracy          0.6667       0.9167     0.7167
+
+bal accuracy overall  (0.6667    +   0.9167   +  0.7167)/3
+0.7667
+
+```{r}
+
+# specific statistics AUC and ba;lanced accuracy p values
+
+# pairwise
+rcompanion::pairwiseNominalIndependence(spoken_test_set_res_mts_no_neutr$table,
+                                        fisher = TRUE)[,c(1:3)]
+
+
+```
+
+     Comparison     p.Fisher p.adj.Fisher
+1 angry : happy 0.0000269000  0.000040400
+2   angry : sad 0.1270000000  0.127000000
+3   happy : sad 0.0000000679  0.000000204
+
+```{r}
+# spoken_test_set_res_mts_no_neutr. -all resuylts
+conf_mat_spk_mts_no_neutr <- table(spoken_cfmts_4_pca_test$prediction, spoken_cfmts_4_pca_test$expression)
+
+conf_mat_spk_mts_no_neutr
+
+# computed on test set
+class_results_spk_mts_no_ntr <- lapply(colnames(conf_mat_spk_mts_no_neutr), function(class_name) {
+  calculate_class_metrics_and_p_value(conf_mat_spk_mts_no_neutr, class_name)
+})
+
+class_results_spk_mts_no_ntr
+
+
+
+names(class_results_spk_mts_no_ntr) <- colnames(conf_mat_spk_mts_no_neutr)
+class_results_spk_mts_no_ntr
+
+
+# Convert results to data frame for better readability
+do.call(rbind, lapply(class_results_spk_mts_no_ntr, as.data.frame))
+
+
+```
+
+do.call(rbind, lapply(class_results_spk_mts_no_ntr, as.data.frame))
+      sensitivity specificity balanced_accuracy          p_value
+angry   0.5333333   0.8000000         0.6666667 0.01267365933873
+happy   0.8666667   0.9666667         0.9166667 0.00000001134237
+sad     0.6666667   0.7666667         0.7166667 0.00182521720222
+
+
+
+ROC and AUC
+
+
+```{r}
+spoken_cfmts_4_pca_test
+mod_rf_spk_mts_train$call
+
+roc_spoken_pred_no_neutr <- as.data.frame(predict(mod_rf_spk_mts_train, 
+                                         spoken_cfmts_4_pca_test,
+                                           # subset(PC1_scale<200), 
+                                         type = "prob"))
+
+# predict class and then attach test class
+roc_spoken_pred_no_neutr$predict <- names(roc_spoken_pred_no_neutr)[1:3][apply(roc_spoken_pred_no_neutr[,1:3], 1, which.max)]
+
+
+
+
+roc_spoken_pred_no_neutr$observed <- spoken_cfmts_4_pca_test$expression
+
+```
+
+
+# 1 ROC curve, mock vs non mock no neutral
+
+
+```{r}
+
+spk_roc_no_neutr.happy <- roc(ifelse(roc_spoken_pred_no_neutr$observed=="happy", "happy", "rest"), as.numeric(roc_spoken_pred_no_neutr$happy))
+
+# others
+spk_roc_no_neutr.sad_main <- roc(ifelse(roc_spoken_pred_no_neutr$observed=="sad", "sad", "rest"), as.numeric(roc_spoken_pred_no_neutr$sad))
+
+# spk_roc_no_neutr.sad_main$auc
+spk_roc_no_neutr.angry <- roc(ifelse(roc_spoken_pred_no_neutr$observed=="angry", "angry", "rest"), as.numeric(roc_spoken_pred_no_neutr$angry))
+# # spk_roc_no_neutr.angry$auc
+
+
+spk_roc_no_neutr.sad_main$auc
+spk_roc_no_neutr.happy$auc
+spk_roc_no_neutr.angry$auc
+
+
+(spk_roc_no_neutr.happy$auc+     spk_roc_no_neutr.sad_main$auc+
+     spk_roc_no_neutr.angry$auc)/3
+
+
+
+```
+
+spk_roc_no_neutr.sad_main$auc
+spk_roc_no_neutr.happy$auc
+spk_roc_no_neutr.angry$auc
+
+
+(spk_roc_no_neutr.happy$auc+     spk_roc_no_neutr.sad_main$auc+
+     spk_roc_no_neutr.angry$auc)/3
+     
+     
+     Area under the curve: 0.84
+Area under the curve: 0.9767
+Area under the curve: 0.8311
+[1] 0.8825926
+
+for plot roc
+```{r}
+
+rochappydf_no_neutr<- cbind(as.data.frame(spk_roc_no_neutr.happy$specificities), as.data.frame(spk_roc_no_neutr.happy$sensitivities))
+rochappydf_no_neutr$expression<-"happy"
+
+rocangrydf_no_neutr<- cbind(as.data.frame(spk_roc_no_neutr.angry$specificities), as.data.frame(spk_roc_no_neutr.angry$sensitivities))
+rocangrydf_no_neutr$expression <- "angry"
+
+rocsaddf_no_neutr<- cbind(as.data.frame(spk_roc_no_neutr.sad_main$specificities), as.data.frame(spk_roc_no_neutr.sad_main$sensitivities))
+rocsaddf_no_neutr$expression <- "sad"
+
+
+
+
+names(rocsaddf_no_neutr) <- c('specificities', 'sensitivities', 'expression')
+names(rochappydf_no_neutr) <- c('specificities', 'sensitivities', 'expression')
+names(rocangrydf_no_neutr) <- c('specificities', 'sensitivities', 'expression')
+# names(rocneutrdf_no_neutr) <- c('specificities', 'sensitivities', 'expression')
+
+spk_roc_no_neutr_combined<- rbind(rocangrydf_no_neutr, rochappydf_no_neutr, rocsaddf_no_neutr)
+
+colnames(spk_roc_no_neutr_combined)
+
+
+```
+
+
+```{r}
+
+write.csv( spoken_test_set_res_mts_no_neutr$table, "con_mat_spk.csv")
+
+# round(con_mat_posed$byClass, digits = 2)
+# round(con_mat_posed$byClass, digits = 2)
+con_mat_spk_bycl_df<-t(as.data.frame(round(spoken_test_set_res_mts_no_neutr$byClass,digits = 2)))
+
+spoken_test_set_res_mts_no_neutr
+
+con_mat_spk_bycl_df
+write.csv(con_mat_spk_bycl_df, "con_mat_spk_bycl_df.csv")
+
+
+
+```
+
+  
+

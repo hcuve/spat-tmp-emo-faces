@@ -1,0 +1,1087 @@
+---
+title: "expression only mts feature and classification analysis"
+author: "Helio"
+date: "2024-08-23"
+output: html_document
+---
+
+# Split data into train and test sets
+
+```{r}
+# start with the data used to fit the whole NMF
+
+df_OF_output_AUsW_unblind_posed_binned
+
+table(df_OF_output_AUsW_unblind_posed_binned$expression)
+
+# Count unique filenames for each expression
+expression_counts_pos <- df_OF_output_AUsW_unblind_posed_binned %>%
+  group_by(filename, expression) %>%
+  summarize(count = n(), .groups = 'drop') %>%
+  group_by(expression) %>%
+  summarize(unique_files = n())
+
+expression_counts_pos
+
+# Calculate the desired number of files for each expression in test set
+test_size_ratio <- 0.2  # Adjust as needed
+
+
+desired_test_counts_pos <- floor(expression_counts_pos$unique_files * test_size_ratio)
+
+# Function to split files for a single expression level
+split_files <- function(files, n) {
+  set.seed(42)  # For reproducibility
+  sample(files, n)
+}
+
+df_OF_output_AUsW_unblind_posed_binned$expression
+# Split files for each expression level
+split_result_pos <- df_OF_output_AUsW_unblind_posed_binned %>%
+  group_by(expression) %>%
+  summarize(
+    test_files = list(split_files(unique(filename), 
+                                  desired_test_counts_pos[cur_group_id()])),
+    .groups = 'drop'
+  )
+
+
+# Combine all test files
+all_test_files_pos <- unlist(split_result_pos$test_files)
+
+all_test_files_pos<- factor(all_test_files_pos)
+
+unique(df_OF_output_AUsW_unblind_posed_binned$filename)
+
+all_test_files
+
+# Create train and test dataframes
+dta_pos_test <- df_OF_output_AUsW_unblind_posed_binned %>% 
+  filter(factor(filename) %in% all_test_files)
+
+dta_pos_train <- df_OF_output_AUsW_unblind_posed_binned %>% filter(!(filename %in% all_test_files))
+
+# Verify the split
+cat("Train set size:", nrow(dta_pos_train), "\n")
+cat("Test set size:", nrow(dta_pos_test), "\n")
+cat("Unique filenames in train:", length(unique(dta_pos_train$filename)), "\n")
+cat("Unique filenames in test:", length(unique(dta_pos_test$filename)), "\n")
+
+# Check expression distribution
+cat("\nExpression distribution in train:\n")
+print(table(dta_pos_train$expression))
+cat("\nExpression distribution in test:\n")
+print(table(dta_pos_test$expression))
+
+# Check unique filenames per expression
+cat("\nUnique filenames per expression in train:\n")
+print(dta_pos_train %>% group_by(expression) %>% summarize(unique_files = n_distinct(filename)))
+cat("\nUnique filenames per expression in test:\n")
+print(dta_pos_test %>% group_by(expression) %>% summarize(unique_files = n_distinct(filename)))
+
+```
+
+# Ensure that we do not ask for more test files than available
+```{r}
+
+desired_test_counts_pos <- pmin(expression_counts_pos$unique_files, desired_test_counts_pos)
+
+# Function to split files for a single expression level
+split_files <- function(files, n) {
+  set.seed(42)  # For reproducibility
+  sample(files, min(length(files), n))
+}
+
+# Split files for each expression level
+split_result_pos <- df_OF_output_AUsW_unblind_posed_binned %>%
+  group_by(expression) %>%
+  left_join(tibble(expression = expression_counts_pos$expression, 
+                   desired_test_counts = desired_test_counts_pos), 
+            by = "expression") %>%
+  summarize(
+    test_files = list(split_files(unique(filename), 
+                                  desired_test_counts)),
+    .groups = 'drop'
+  )
+
+# Combine all test files
+all_test_files_pos <- unlist(split_result_pos$test_files)
+
+# Create train and test dataframes
+dta_pos_test <- df_OF_output_AUsW_unblind_posed_binned %>% 
+  filter(filename %in% all_test_files_pos)
+
+dta_pos_train <- df_OF_output_AUsW_unblind_posed_binned %>% 
+  filter(!(filename %in% all_test_files_pos))
+
+dta_pos_test$filename<- factor(dta_pos_test$filename)
+dta_pos_train$filename<- factor(dta_pos_train$filename)
+
+intersect(unique(dta_pos_test$filename),
+unique(dta_pos_train$filename))
+
+# dta_pos_test%>%
+#   subset(filename == "./cut_posed_angry_day1_p10.csv")
+# 
+# dta_pos_train%>%
+#   subset(filename == "./cut_posed_angry_day1_p10.csv")
+
+```
+
+(unique(factor(df_OF_output_AUsW_unblind_posed_binned$filename)))
+
+(unique(factor(dta_pos_train$filename)))
+
+(unique(factor(dta_pos_test$filename)))
+
+# Verify the split
+
+```{r}
+cat("Train set size:", nrow(dta_pos_train), "\n")
+cat("Test set size:", nrow(dta_pos_test), "\n")
+cat("Unique filenames in train:", length(unique(df_OF_output_AUsW_unblind_posed_binned$filename)), "\n")
+cat("Unique filenames in train:", length(unique(dta_pos_train$filename)), "\n")
+cat("Unique filenames in test:", length(unique(dta_pos_test$filename)), "\n")
+
+
+```
+
+```{r}
+colnames(df_OF_output_AUsW_unblind_posed_binned)
+colnames(dta_pos_train)
+
+df_OF_output_AUsW_unblind_posed_binned_train <-dta_pos_train
+df_OF_output_AUsW_unblind_posed_binned_test <-dta_pos_test
+
+table(factor(df_OF_output_AUsW_unblind_posed_binned$expression))
+table(factor(df_OF_output_AUsW_unblind_posed_binned_train$expression))
+table(factor(df_OF_output_AUsW_unblind_posed_binned_test$expression))
+
+```
+
+
+fit NMF on train set
+```{r}
+require(NMF)
+colnames(df_OF_output_AUsW_unblind_posed_binned_train)
+unique(df_OF_output_AUsW_unblind_posed_binned_train$expression)
+
+set.seed(123456)
+
+saveRDS(df_OF_output_AUsW_unblind_posed_binned_train[,16:32],
+        "dta_expr_only_4nmf_train.rds")
+
+saveRDS(df_OF_output_AUsW_unblind_posed_binned_test[,16:32],
+        "dta_expr_only_4nmf_test.rds")
+
+
+res_k3_pos_train <- NMF::nmf(df_OF_output_AUsW_unblind_posed_binned_train[,16:32]+.0001, 
+                                 r = 3, 
+                  nrun = 15, #number of runs to try and update for
+                  seed=123456, #specific seed for reproducibility
+                 .options = list( 'v')) #verbose
+
+
+
+saveRDS(res_k3_pos_train, file.path(paths$export_models, "mod_rslt_nmfposed_train.Rds"))
+
+
+
+coefmap(res_k3_pos_train)
+basismap(res_k3_pos_train)
+# consistent with main results
+
+as.data.frame(res_k3_pos_train@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+
+```
+
+
+# Project test data onto the NMF components from the training data
+# Load NMF package
+library(NMF)
+```{r}
+# Fit NMF model on the training data
+# W time
+
+res_k3_pos_train@nrun
+W_pos_train <- basis(res_k3_pos_train)  # Basis matrix (components)
+H_pos_train <- coef(res_k3_pos_train)   # Coefficient matrix (representation of training data)
+
+
+res_k3_pos_test_proje<- nmf(df_OF_output_AUsW_unblind_posed_binned_test[,16:32]+.0001, 
+         H = H_pos_train, 
+         rank= 3,
+          seed=123456,
+         # method = "lee", 
+         nrun = 1)
+
+
+saveRDS(res_k3_pos_test_proje, file.path(paths$export_models, "mod_rslt_nmfposed_test_projection.Rds"))
+
+
+
+coefmap(res_k3)
+
+coefmap(res_k3_pos_train)
+coefmap(res_k3_pos_test_proje)
+
+
+
+```
+
+to allow for better comaprison
+
+```{r}
+
+as.data.frame(res_k3@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+# similar to final plot
+
+
+as.data.frame(res_k3_pos_train@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+
+# here is what we will do, we will match the order to the main NMF plot
+df_OF_output_AUsW_unblind_posed_binned_train$k3_comp1<- res_k3_pos_train@fit@W[,1]
+df_OF_output_AUsW_unblind_posed_binned_train$k3_comp2<- res_k3_pos_train@fit@W[,2]
+df_OF_output_AUsW_unblind_posed_binned_train$k3_comp3<- res_k3_pos_train@fit@W[,3]
+
+
+as.data.frame(res_k3_pos_test_proje1@fit@H) %>%
+  mutate(comp = 1:n())%>%
+  gather(au,value,-comp)%>%
+  group_by(comp)%>%
+  mutate(value = maxnormalize(value))%>%
+  ggplot(aes(comp, au, fill = value))+
+  geom_tile()
+
+
+# Calculate cosine similarity matrix between H_pos_train and H_pos_projected
+similarity_matrix <- as.matrix(proxy::simil(H_pos_train, res_k3@fit@H, method = "cosine"))
+similarity_matrix
+
+# Install and load the clue package if not already installed
+# if (!requireNamespace("clue", quietly = TRUE)) {
+#     install.packages("clue")
+# }
+# library(clue)
+# Solve the assignment problem to find the optimal permutation
+perm <- solve_LSAP(similarity_matrix, maximum = TRUE)
+perm
+
+# Optimal assignment:
+# 1 => 1, 2 => 3, 3 => 2
+
+
+df_OF_output_AUsW_unblind_posed_binned_train$k3_comp1<- res_k3_pos_train@fit@W[,1]
+df_OF_output_AUsW_unblind_posed_binned_train$k3_comp3<- res_k3_pos_train@fit@W[,2]
+df_OF_output_AUsW_unblind_posed_binned_train$k3_comp2<- res_k3_pos_train@fit@W[,3]
+
+
+
+# double check
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train)
+  df_OF_output_AUsW_unblind_posed_binned_train[,c(1:3,10,51:53)]%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values)%>%
+  group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+  
+ # colnames(df_OF_output_AUsW_unblind_posed_binned) 
+    df_OF_output_AUsW_unblind_posed_binned%>%
+       select(filename, bin_frame, subject, expression, comp1, comp2,comp3)%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values)%>%
+  group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+    
+
+```   
+
+# LOOKS SIMILAR NOW MAP PROJECTION TO ORIGINAL COMPONENT ORDER
+    
+```{r}    
+coefmap(res_k3_pos_test_proje)
+coefmap(res_k3)
+
+# recreating AUs
+dta_pos_test_proje_reconstr<- fitted(res_k3_pos_test_proje)
+
+
+dta_pos_test_proje_reconstr<- as.data.frame(dta_pos_test_proje_reconstr)
+
+# looks like 1 and 2 are mismatched
+    
+# Calculate cosine similarity matrix between H_pos_train and H_pos_projected
+similarity_matrix_proj_resk3_pos <- as.matrix(proxy::simil(res_k3_pos_test_proje@fit@H, res_k3@fit@H, method = "cosine"))
+similarity_matrix_proj_resk3_pos
+
+
+# Solve the assignment problem to find the optimal permutation
+solve_LSAP(similarity_matrix_proj_resk3_pos, maximum = TRUE)
+# Optimal assignment:
+# 1 => 2, 2 => 1, 3 => 3
+
+
+  # df_OF_output_AUsW_unblind_posed_binned_test$k3_comp1
+  dta_pos_test_proje_reconstr$k3_comp2<-   res_k3_pos_test_proje@fit@W[,1]
+  dta_pos_test_proje_reconstr$k3_comp1<-   res_k3_pos_test_proje@fit@W[,2]
+  dta_pos_test_proje_reconstr$k3_comp3<-   res_k3_pos_test_proje@fit@W[,3]
+  
+  
+  colnames(dta_pos_test_proje_reconstr)
+  
+dta_pos_test_proje_reconstr[,21:24]<-df_OF_output_AUsW_unblind_posed_binned_test[,c(1:3,10)]
+
+  
+    colnames(dta_pos_test_proje_reconstr)
+  
+  df_OF_output_AUsW_unblind_posed_binned_test$k3_comp1<-   dta_pos_test_proje_reconstr$k3_comp1
+df_OF_output_AUsW_unblind_posed_binned_test$k3_comp2<-   dta_pos_test_proje_reconstr$k3_comp2
+df_OF_output_AUsW_unblind_posed_binned_test$k3_comp3<-   dta_pos_test_proje_reconstr$k3_comp3
+
+  
+
+
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_test)
+
+
+ 
+df_OF_output_AUsW_unblind_posed_binned_test%>%
+      select(filename, bin_frame, subject, expression, k3_comp1, k3_comp2,k3_comp3)%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values)%>%
+  group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+
+
+  df_OF_output_AUsW_unblind_posed_binned_train[,c(1:3,10,51:53)]%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values)%>%
+  group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+
+# olnames(df_OF_output_AUsW_unblind_posed_binned_train)
+ 
+  
+ # colnames(df_OF_output_AUsW_unblind_posed_binned) 
+    df_OF_output_AUsW_unblind_posed_binned%>%
+       select(filename, bin_frame, subject, expression, comp1, comp2,comp3)%>%
+  gather(comp,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values)%>%
+  group_by(subject,comp)%>%
+    mutate(values = maxnormalize(values))%>%
+    ungroup()%>%
+  ggplot(aes(bin_frame, values,colour = comp))+
+  geom_smooth()+
+  facet_wrap(~expression)
+    
+    
+
+
+```
+
+
+
+Now train and test set components are named in a consistent way with the reported and plotted NMF on the full data.
+
+# consistent
+# Compare V_test_reconstructed with original test data
+```{r}
+colnames(df_OF_output_AUsW_unblind_posed_binned_test)
+colnames(dta_pos_test_proje_reconstr)
+
+
+# compare reconstructed AUS from projection to original AUS in the test set
+
+dta_pos_test_proje_reconstr[,c(1:17,21:24)]%>%
+  gather(au,values,-filename, -bin_frame, -subject, -expression)%>%
+  # mutate(values = values)%>%
+  group_by(subject, au)%>%
+    mutate(values = maxnormalize(values))%>%
+  ggplot(aes(bin_frame, values,colour = au))+
+  geom_smooth()+
+  facet_wrap(~expression)
+  
+  # colnames(df_OF_output_AUsW_unblind_posed_binned_test)
+  
+  df_OF_output_AUsW_unblind_posed_binned_test[,c(1:3,10,16:32)]%>%
+  gather(au,values,-filename, -bin_frame, -subject, -expression)%>%
+  mutate(values = values+.0001)%>%
+   group_by(subject, au)%>%
+    mutate(values = maxnormalize(values))%>%
+  ggplot(aes(bin_frame, values,colour = au))+
+  geom_smooth()+
+  facet_wrap(~expression)
+  
+# patterns re similar, reconstruction works
+
+  
+```
+  
+
+
+# Extract features
+The primary reason we split before scaling is to prevent data leakage. 
+
+
+```{r}
+# df_OF_output_AUsW_unblind_posed_binned_test
+df_OF_output_AUsW_unblind_posed_binned_test$train_test<- "test"
+df_OF_output_AUsW_unblind_posed_binned_train$train_test<- "train"
+
+# do the scaling separately
+
+df_OF_output_AUsW_unblind_posed_binned_train_test_bind<- bind_rows(df_OF_output_AUsW_unblind_posed_binned_train,
+          df_OF_output_AUsW_unblind_posed_binned_test)
+
+
+library(CMFMTS)
+
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind)
+
+# "filename"      "bin_frame"     "subject"       "drug.placebo"  "expression"   
+#  [6] "posed.spoken"  "frame"         "timeseries_id" "train_test"    "k3_comp1"     
+# [11] "k3_comp2"      "k3_comp3" 
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind[,c(1:3,9:11,54,51:53)])
+
+# gather components on train and test sets
+
+df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts<- gather(df_OF_output_AUsW_unblind_posed_binned_train_test_bind[,c(1:3,9:11,54,51:53)], 
+                                                                         key = "nm_comp", 
+                                                                         value = "nmf_comp_value", 
+                                                                         - c(1:7))
+
+
+unique(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts$nm_comp)
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts)
+```
+
+
+
+# create a timeseries unique ID for train and test sets
+
+```{r}
+
+df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts$time_unq <- paste0(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts$filename,                             paste0(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts$nm_comp))
+
+unique(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts$time_unq)
+
+
+# now dcast such that each row is a TIME SERIES
+
+df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts
+
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts$nmf_comp_value))
+
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts$bin_frame))
+df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2 
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts)
+
+# CREATE a t for frame to avoid number only name columns
+  df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2<-
+  df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts%>%
+  arrange(filename,nm_comp,bin_frame)%>%
+  group_by(filename,nm_comp)%>%
+  mutate(bin_frame = paste0("t_", paste0(bin_frame)))%>%
+  ungroup() %>% 
+
+    # table(is.na(tmp_test$nmf_comp_value)) false
+  
+ data.table::dcast(time_unq+filename+train_test+subject+
+                     expression+drug.placebo+nm_comp~bin_frame, value.var = "nmf_comp_value",
+                       fun.aggregate = mean)%>%
+  ungroup()
+
+
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2$t_1))
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2$t_100))
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2$t_20))
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2$t_21))
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2$t_81))
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2))
+# no nas anywhere
+
+  df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2
+ 
+```
+
+
+# extract timeseries features
+
+```{r}
+# 
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2)colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,8:107])
+
+# order the timeseries by time id
+  df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2<- bind_cols(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,1:7], df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,c(ts_order)])
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2)
+table(is.na(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2))
+
+
+```
+# derive mts features
+
+```{r}
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2)
+df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2
+# fit spoken time feature extraction
+?CMFMTS::cmfmts
+
+# we dont want to scale to avoid data leakage from train to test
+
+
+unique(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2$filename)
+
+
+
+
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,8:107])
+save
+
+
+
+saveRDS(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,8:107], file.path(paths$export_data, "dta_pos_4_cmfts.rds"))
+
+# you can replace the data with dta_pos_4_cmfts.rds to reproduce
+pos_cfmts <- CMFMTS::cmfmts(dataset = df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,8:107],
+                               scale = F,
+                na = T)
+
+table(is.na(pos_cfmts))
+ # nrow(pos_cfmts)
+
+# [1] 684 this matches the data
+ 
+  # nrow(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2)
+# 684
+
+
+pos_cfmts
+# not much difference between scaled and non scaled
+
+colnames(pos_cfmts)
+colnames(df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2)
+
+
+
+pos_cfmts[,42:48] <- df_OF_output_AUsW_unblind_posed_binned_train_test_bind_4cmfts2[,1:7]
+
+colnames(pos_cfmts)
+
+
+saveRDS(pos_cfmts[,1:41], 
+        file.path(paths$export_data, "dta_rslt_pos_cmfts.rds"))
+
+
+
+```
+
+PCA on cmfts features
+```{r}
+colnames(pos_cfmts)
+
+pos_cfmts
+# drop columns with zero SD
+
+# Calculate the sd for the selected columns
+# Identify the numerical columns
+colnames(pos_cfmts)
+?apply
+
+sd_values_pos <- apply(pos_cfmts[, 1:41], 
+                   MARGIN = 2, sd, na.rm = T) # 2 chooses columns and 2 chooses rows
+
+
+# Identify the columns with a standard deviation of zero
+zero_sd_cols_pos <- names(which(sd_values_pos == 0))
+
+# [1] "length"          "nperiods"        "seasonal_period" same as spoken
+
+# Drop the columns with a standard deviation of zero
+pos_cfmts <- pos_cfmts%>%select(-zero_sd_cols_pos)
+colnames(pos_cfmts)
+# pos_cfmts
+
+table(is.na(pos_cfmts))
+# no nas
+pos_cfmts
+
+
+# Replace NA values with the column average
+colnames(pos_cfmts)
+col_mts_sel_pos<- colnames(pos_cfmts[,1:38])
+
+
+
+library(data.table)
+ 
+pos_cfmts_4_pca <-
+setDT(pos_cfmts)%>%
+  select(-time_unq)%>%
+  ungroup()%>%
+   gather(ts_features, values, -filename,- subject, -expression,-drug.placebo, -nm_comp,-train_test)%>%
+  mutate(ts_features_k =  paste0(ts_features, nm_comp))%>%
+  # mutate(bin_frame = paste0("t_", paste0(bin_frame)))%>%
+ data.table::dcast(filename +train_test+ subject+expression+drug.placebo ~ ts_features_k, value.var = "values", sep = "")%>%
+  ungroup()
+
+table(is.na(pos_cfmts_4_pca))
+
+# FALSE 
+# 27132
+colnames(pos_cfmts_4_pca)
+
+pos_cfmts_4_pca
+
+# now split into train and test set features
+pos_cfmts_4_pca_train<- pos_cfmts_4_pca%>%
+  subset(train_test == "train")
+
+pos_cfmts_4_pca_test<- pos_cfmts_4_pca%>%
+  subset(train_test != "train")
+
+
+
+colnames(pos_cfmts_4_pca_train)
+
+# we cant scale PCA by subject because we don't have enough data
+# the scale below just ensure the different features ar e,or or less in the same range
+
+
+colnames(pos_cfmts_4_pca_train)
+
+pos_pca_cfmts_train <- prcomp(pos_cfmts_4_pca_train[,c(6:119)],
+                                 rank =3, 
+                                 center = T,
+                                 scale. = T)
+
+
+# path Data/ExportedData/Models
+saveRDS(pos_pca_cfmts_train, "mod_rslt_pos_pca_cfmts_train.Rds")
+# naming
+# Extract the loadings
+
+# this is the train order doe sit match the order we used in the paper
+coefmap(res_k3_pos_train)
+coefmap(res_k3)
+# remeber we changed rthe ks to match the  main 
+
+pos_loadings <- pos_pca_cfmts_train$rotation
+
+# Identify the names of the variables with the highest loadings for each component
+pos_dominant_vars <- apply(abs(pos_loadings), 2, function(x) {
+  # Get the names of the variables with the highest loadings
+  names(sort(x, decreasing = TRUE)[1:3])  # Top 3 contributing variables
+})
+
+
+pos_dominant_vars # now we can use these ti name the PCs so that it matches the NMF data
+# PC1 = comp2
+# PC2 = comp3
+# PC3 = comp1
+# Create names for the components
+# component_names <- apply(pos_dominant_vars, 2, paste, collapse = "_")
+
+
+```
+
+
+```{r}
+
+# project PCA to test set
+# note the predict will apply the same sacaling and centering of the train set
+colnames(pos_cfmts_4_pca_test)
+# this wil also apply the scaling factors
+pos_pca_cfmts_test <- predict(pos_pca_cfmts_train, pos_cfmts_4_pca_test[,c(6:119)])
+
+range(pos_pca_cfmts_test[,1])
+
+saveRDS(pos_pca_cfmts_test, "mod_pos_pca_cfmts_test_proj.Rds")
+
+
+# we can change both train and tets PCA names toi matchn NMF
+
+pos_dominant_vars # now we can use these ti name the PCs so that it matches the NMF data
+# PC1 = comp2
+# PC2 = comp3
+# PC3 = comp1
+
+```
+
+# Train Random Forest
+
+
+```{r}
+unique(pos_cfmts_4_pca_train$expression)
+
+pos_dominant_vars # now we can use these ti name the PCs so that it matches the NMF data
+# PC1                       PC2                       PC3                  
+# [1,] "max_level_shiftk3_comp2" "max_level_shiftk3_comp3" "unitroot_ppk3_comp1"
+# [2,] "diff1_acf1k3_comp2"      "x_pacf5k3_comp3"         "x_acf1k3_comp1"     
+# [3,] "e_acf1k3_comp2"          "x_acf1k3_comp3"          "trendk3_comp1" 
+# PC1 = comp2
+# PC2 = comp3
+# PC3 = comp1
+
+pos_cfmts_4_pca_train$comp1 <- pos_pca_cfmts_train$x[,3]  # PC3 -> comp1
+pos_cfmts_4_pca_train$comp2 <- pos_pca_cfmts_train$x[,1]  # PC1 -> comp2
+pos_cfmts_4_pca_train$comp3 <- pos_pca_cfmts_train$x[,2]  # PC2 -> comp3
+
+
+# range( pos_pca_cfmts_test[,1])
+# pos_cfmts_4_pca_test
+pos_cfmts_4_pca_test$comp1<- pos_pca_cfmts_test[,3]# PC3 -> comp1
+pos_cfmts_4_pca_test$comp2<- pos_pca_cfmts_test[,1] # PC1 -> comp2
+pos_cfmts_4_pca_test$comp3<- pos_pca_cfmts_test[,2]# PC2 -> comp3
+
+
+```
+
+unique(pos_cfmts_4_pca_train)
+
+range(pos_cfmts_4_pca_train$PC1)
+range(pos_cfmts_4_pca_train$PC2)
+range(pos_cfmts_4_pca_train$PC3)
+
+
+```{r}
+# we need to scale because the PCA space is vast and we didn scale before PCA
+
+# Scaling the components in the training dataset
+pos_cfmts_4_pca_train <- pos_cfmts_4_pca_train %>%
+  ungroup() %>%
+  mutate(comp1_scale = scale(comp1)[,1],
+         comp2_scale = scale(comp2)[,1],
+         comp3_scale = scale(comp3)[,1])
+
+# Check the range of the scaled components
+range(pos_cfmts_4_pca_train$comp1_scale)
+
+# Extract scaling parameters from the training dataset
+comp1_mean <- mean(pos_cfmts_4_pca_train$comp1)
+comp1_sd <- sd(pos_cfmts_4_pca_train$comp1)
+
+comp2_mean <- mean(pos_cfmts_4_pca_train$comp2)
+comp2_sd <- sd(pos_cfmts_4_pca_train$comp2)
+
+comp3_mean <- mean(pos_cfmts_4_pca_train$comp3)
+comp3_sd <- sd(pos_cfmts_4_pca_train$comp3)
+
+# Scaling the components in the test dataset using training parameters
+pos_cfmts_4_pca_test <- pos_cfmts_4_pca_test %>%
+  mutate(comp1_scale = (comp1 - comp1_mean) / comp1_sd,
+         comp2_scale = (comp2 - comp2_mean) / comp2_sd,
+         comp3_scale = (comp3 - comp3_mean) / comp3_sd)
+
+range(pos_cfmts_4_pca_train$comp1_scale)
+range(pos_cfmts_4_pca_train$comp2_scale)
+range(pos_cfmts_4_pca_train$comp3_scale)
+
+range(pos_cfmts_4_pca_test$comp1_scale)
+range(pos_cfmts_4_pca_test$comp2_scale)
+range(pos_cfmts_4_pca_test$comp3_scale)
+
+# why don. we use scaled values from the get go
+# ?train
+
+# ?caret::train()
+colnames(pos_cfmts_4_pca_train)
+
+mod_rf_pos_mts_train <- train(expression ~ comp1_scale + comp2_scale + comp3_scale,
+                data = pos_cfmts_4_pca_train,
+               # data = pos_train_set,
+                method = "rf",
+                trControl = trainControl(method = "oob"),
+               # tuneGrid = data.frame(mtry = 6),
+               # preProcess = "none", default in none
+                # preProcess = c("center", "scale"), if we do thisd it estimates and applies to traing set
+                ntree = 500) # tunig trees is not common
+
+
+
+saveRDS(mod_rf_pos_mts_train,"mod_rf_pos_mts_train.Rds")
+mod_rf_pos_mts_train$bestTune
+
+rf_model_pos_train <- mod_rf_pos_mts_train$finalModel
+
+# Extract OOB error
+oob_error_pos_train <- rf_model_pos_train$err.rate[, "OOB"]
+
+# Plot OOB error by the number of trees
+plot(1:length(oob_error_pos_train), oob_error_pos_train, type = "l",
+     xlab = "Number of Trees", ylab = "OOB Error",
+     main = "OOB Error by Number of Trees")
+  # Add a vertical line at x = 30
+abline(v = 30, col = "red", lty = 2, lwd = 2)
+
+# >50 is more than fine
+# to chose the best tree we just need a value where the error plateos
+
+
+# Evaluate on test set
+
+mod_rf_pos_mts_train
+mod_rf_pos_mts_train$call
+
+# train.formula(form = expression ~ comp1_scale + comp2_scale + 
+#     comp3_scale, data = pos_cfmts_4_pca_train, method = "rf", 
+#     trControl = trainControl(method = "oob"), ntree = 500)
+
+caret::confusionMatrix.train()
+caret::confusionMatrix()
+
+?caret::confusionMatrix.train
+pos_cfmts_4_pca_test$prediction <- factor(predict(mod_rf_pos_mts_train, pos_cfmts_4_pca_test))
+
+pos_cfmts_4_pca_test$expression<- factor( pos_cfmts_4_pca_test$expression)
+
+pos_cfmts_4_pca_test
+pos_test_set_res_mts<- confusionMatrix(pos_cfmts_4_pca_test$prediction, 
+                pos_cfmts_4_pca_test$expression)
+
+pos_test_set_res_mts
+saveRDS(pos_test_set_res_mts, 
+        file.path(paths$export_models, "mod_rf_rslt_pos_mts_test.Rds"))
+
+(0.9166667+0.9833333+0.9000000)/3
+```
+scaled inputs
+Confusion Matrix and Statistics
+
+          Reference
+Prediction angry happy sad
+     angry    14     0   3
+     happy     1    15   0
+     sad       0     0  12
+
+Overall Statistics
+                                               
+               Accuracy : 0.9111               
+                 95% CI : (0.7878, 0.9752)     
+    No Information Rate : 0.3333               
+    P-Value [Acc > NIR] : 0.0000000000000008467
+                                               
+                  Kappa : 0.8667               
+                                               
+ Mcnemar's Test P-Value : NA                   
+
+Statistics by Class:
+
+                     Class: angry Class: happy Class: sad
+Sensitivity                0.9333       1.0000     0.8000
+Specificity                0.9000       0.9667     1.0000
+Pos Pred Value             0.8235       0.9375     1.0000
+Neg Pred Value             0.9643       1.0000     0.9091
+Prevalence                 0.3333       0.3333     0.3333
+Detection Rate             0.3111       0.3333     0.2667
+Detection Prevalence       0.3778       0.3556     0.2667
+Balanced Accuracy          0.9167       0.9833     0.9000
+
+same as befoer withouth solving the whole order thing
+
+
+```{r}
+
+# specific statistics AUC and balanced accuracy p values
+
+# pairwise
+rcompanion::pairwiseNominalIndependence(pos_test_set_res_mts$table,
+                                        fisher = TRUE)[,c(1:3)]
+
+
+```
+Comparison
+<chr>
+p.Fisher
+<dbl>
+p.adj.Fisher
+<dbl>
+angry : happy	0.0000000309	0.0000000493		
+angry : sad	0.0000105000	0.0000105000		
+happy : sad	0.0000000329	0.0000000493	
+	
+
+
+```{r}
+# pos_test_set_res_mts_. -all resuylts
+conf_mat_pos_mts<- table(pos_cfmts_4_pca_test$prediction, pos_cfmts_4_pca_test$expression)
+
+conf_mat_pos_mts
+
+# computed on test set
+class_results_pos_mts <- lapply(colnames(conf_mat_pos_mts), function(class_name) {
+  calculate_class_metrics_and_p_value(conf_mat_pos_mts, class_name)
+})
+
+class_results_pos_mts
+
+
+
+names(class_results_pos_mts) <- colnames(conf_mat_pos_mts)
+class_results_pos_mts
+
+
+# Convert results to data frame for better readability
+do.call(rbind, lapply(class_results_pos_mts, as.data.frame))
+
+
+```
+
+do.call(rbind, lapply(class_results_pos_mts, as.data.frame))
+      sensitivity specificity balanced_accuracy             p_value
+angry   0.9333333   0.9000000         0.9166667 0.00000001134237426
+happy   1.0000000   0.9666667         0.9833333 0.00000000004448464
+sad     0.8000000   1.0000000         0.9000000 0.00000004012555632
+
+
+ROC and AUC
+
+
+```{r}
+
+pos_cfmts_4_pca_test
+
+roc_pos_pred <- as.data.frame(predict(mod_rf_pos_mts_train, 
+                                         pos_cfmts_4_pca_test,
+                                           # subset(PC1_scale<200), 
+                                         type = "prob"))
+
+# predict class and then attach test class
+roc_pos_pred$predict <- names(roc_pos_pred)[1:3][apply(roc_pos_pred[,1:3], 1, which.max)]
+
+
+# roc_pos_pred$predict<- roc_pos_pred$prediction
+
+roc_pos_pred$observed <- pos_cfmts_4_pca_test$expression
+
+```
+
+
+# 1 ROC curve, mock vs non mock no neutral
+
+
+```{r}
+
+pos_roc.happy <- roc(ifelse(roc_pos_pred$observed=="happy", "happy", "rest"), as.numeric(roc_pos_pred$happy))
+
+# others
+pos_roc.sad_main <- roc(ifelse(roc_pos_pred$observed=="sad", "sad", "rest"), as.numeric(roc_pos_pred$sad))
+
+# pos_roc.sad_main$auc
+pos_roc.angry <- roc(ifelse(roc_pos_pred$observed=="angry", "angry", "rest"), as.numeric(roc_pos_pred$angry))
+# # pos_roc.angry$auc
+
+
+pos_roc.sad_main$auc
+pos_roc.happy$auc
+pos_roc.angry$auc
+
+
+(pos_roc.happy$auc+     pos_roc.sad_main$auc+
+     pos_roc.angry$auc)/3
+
+
+
+```
+
+pos_roc.sad_main$auc
+pos_roc.happy$auc
+pos_roc.angry$auc
+
+
+(pos_roc.happy$auc+     pos_roc.sad_main$auc+
+     pos_roc.angry$auc)/3
+
+Area under the curve: 0.9767
+Area under the curve: 0.9956
+Area under the curve: 0.9667
+[1] 0.9796296
+
+
+for plot roc
+```{r}
+
+rochappydf_<- cbind(as.data.frame(pos_roc.happy$specificities), as.data.frame(pos_roc.happy$sensitivities))
+rochappydf$expression<-"happy"
+
+rocangrydf_<- cbind(as.data.frame(pos_roc.angry$specificities), as.data.frame(pos_roc.angry$sensitivities))
+rocangrydf$expression <- "angry"
+
+rocsaddf_<- cbind(as.data.frame(pos_roc.sad_main$specificities), as.data.frame(pos_roc.sad_main$sensitivities))
+rocsaddf$expression <- "sad"
+
+names(rocsaddf) <- c('specificities', 'sensitivities', 'expression')
+names(rochappydf) <- c('specificities', 'sensitivities', 'expression')
+names(rocangrydf) <- c('specificities', 'sensitivities', 'expression')
+# names(rocneutrdf) <- c('specificities', 'sensitivities', 'expression')
+
+pos_roc_combined<- rbind(rocangrydf, rochappydf, rocsaddf)
+
+colnames(pos_roc_combined)
+
+
+
+
+write.csv( pos_test_set_res_mts$table, "con_mat_pos.csv")
+
+# round(con_mat_posed$byClass, digits = 2)
+# round(con_mat_posed$byClass, digits = 2)
+con_mat_pos_bycl_df<-t(as.data.frame(round(pos_test_set_res_mts$byClass,digits = 2)))
+
+pos_test_set_res_mts
+
+con_mat_pos_bycl_df
+write.csv(con_mat_pos_bycl_df, "con_mat_pos_bycl_df.csv")
+
+
+
+```
+
+
+  
+<!-- save.image("~/HaloStudy/Data/halofacestudyOCT2023.RData") -->

@@ -1,0 +1,508 @@
+---
+title: "Figure 5. Spatiotemporal classification of Emotive speech facial expressions"
+author: "Helio"
+date: "2024-08-23"
+output: html_document
+---
+
+
+
+```{r}
+paper_plots$ROC_spoken<-
+spk_roc_no_neutr_combined%>%
+  group_by(expression)%>%
+  mutate(specificities = sort(1- specificities),
+         sensitivities = sort(sensitivities))%>%
+  mutate(chance_x = maxnormalize(1:n()),
+         chance_y = maxnormalize(1:n()))%>%
+  ungroup()%>%
+ggplot(aes(x =  specificities, y = sensitivities, 
+           group = expression, 
+           colour = expression))+
+
+  geom_point(aes(x = 0, y = 1),colour = "black", size = 2) +
+  geom_line(aes(linetype =  expression), size = 1.5) +
+   geom_line(aes(x = chance_x,
+                 y =chance_y),
+             linetype = "dashed", size = 2, color = "black")+
+  scale_color_brewer(palette = "Dark2")+
+  scale_fill_brewer(palette = "Dark2")+
+    base_breaks_x(1-spk_roc_no_neutr_combined$specificities) +
+  base_breaks_y(spk_roc_no_neutr_combined$sensitivities)+
+  annotate( "text",x = 0.15,y=1.05, label = "Perfect separation")+
+  xlab("FPR")+
+  ylab("TPR")+
+  # annotate( "text",x = 0.0999,y=1.05, label = paste0("AUC=", roc.happy$auc)+
+  
+  theme_bw()+
+  plot_style+
+  theme(legend.position = c(.75,.2))
+
+paper_plots$ROC_spoken
+```
+
+
+boundary plots corrected
+
+```{r}
+# scale
+# for boundary the random forest grid should be the trai one i think
+
+spoken_cfmts_4_pca_train
+spoken_cfmts_4_pca_test
+
+range(spoken_cfmts_4_pca_train$comp1_scale)
+range(spoken_cfmts_4_pca_train$comp3_scale)
+range(spoken_cfmts_4_pca_test$comp1_scale)
+range(spoken_cfmts_4_pca_test$comp2_scale)
+range(spoken_cfmts_4_pca_test$comp3_scale)
+
+
+spoken_cfmts_4_pca_test
+
+
+spoken_cfmts_4_pca_train_test1<- bind_rows(spoken_cfmts_4_pca_train,
+          spoken_cfmts_4_pca_test)%>%
+  subset(comp3_scale< 88) #outlier
+
+mod_rf_spk_mts_train
+unique(spoken_cfmts_4_pca_train_test$filename)
+
+# we need to scale the features for plotting, as they are wildly in different scales
+# spoken_cfmts_4_pca_train_test
+
+spoken_cfmts_4_pca_train_test$comp
+
+# min max
+# we are using the spoken_cfmts_4_pca_train_test1 rather tjha just train to se if it solves the plotting boundaryu issues
+x_min_sp <- min(spoken_cfmts_4_pca_train_test1$comp1_scale + 0.5)
+x_max_sp <- max(spoken_cfmts_4_pca_train_test1$comp1_scale+ 0.5)
+
+y_min_sp <- min(spoken_cfmts_4_pca_train_test1$comp2_scale+ 0.5)
+y_max_sp <- max(spoken_cfmts_4_pca_train_test1$comp2_scale+ 0.5)
+
+z_min_sp <- min(spoken_cfmts_4_pca_train_test1$comp3_scale+ 0.5)
+z_max_sp <- max(spoken_cfmts_4_pca_train_test1$comp3_scale+ 0.5)
+
+  # breaks
+xBreaks_sp <- getPrettyAxisBreaks(spoken_cfmts_4_pca_train_test1$comp1_scale, min.n = 4)
+  
+yBreaks_sp <- getPrettyAxisBreaks(spoken_cfmts_4_pca_train_test1$comp2_scale, min.n = 4)
+
+zBreaks_sp <- getPrettyAxisBreaks(spoken_cfmts_4_pca_train_test1$comp3_scale, min.n = 4)
+  
+  x_min_sp <- xBreaks_sp[1]
+  x_max_sp <- xBreaks_sp[length(xBreaks_sp)]
+  y_min_sp <- yBreaks_sp[1]
+  y_max_sp <- yBreaks_sp[length(yBreaks_sp)]
+  
+   z_min_sp <- zBreaks_sp[1]
+  z_max_sp <- zBreaks_sp[length(zBreaks_sp)]
+  # Adjust the graining
+  hs_sp <- min(c(diff(range(xBreaks_sp)), diff(range(yBreaks_sp)))) / 50
+  hs_z_sp <- min(c(diff(range(yBreaks_sp)), diff(range(zBreaks_sp)))) / 50
+  
+
+mod_rf_spk_mts_train$call
+# train.formula(form = expression ~ comp1_scale + comp2_scale + 
+#     comp3_scale, data = spoken_cfmts_4_pca_train, method = "rf", 
+#     trControl = trainControl(method = "oob"), ntree = 500)
+# > 
+
+
+# naming needs to obey whats ithe call above
+grid_spken_4bound<- expand.grid(comp1_scale= seq(x_min_sp, x_max_sp, 
+                                            by = hs_sp
+                            # length.out = 100
+                            ),
+                  comp2_scale= seq(y_min_sp, y_max_sp,
+                                              by = hs_sp
+                           # length.out = 100 
+                           ),
+                  
+                  comp3_scale= seq(z_min_sp, z_max_sp ,
+                                             by = hs_z_sp
+                            # length.out = 100
+                            )
+                  )
+
+
+# this bound is based on train
+
+grid_spken_4bound$predicted <- predict(mod_rf_spk_mts_train, grid_spken_4bound)
+
+range(grid_spken_4bound$comp1_scale)
+range(grid_spken_4bound$comp3_scale)
+
+
+```
+
+
+boundary plots no neutral 
+
+
+
+```{r}
+
+boundaryplots$SPOKEN_comp1_2_mts<-
+  ggplot() +
+
+  geom_tile(data = grid_spken_4bound, 
+            aes(x = comp1_scale, y = comp2_scale,
+              fill = predicted),#change the name here to predicted to avoid confusion
+            alpha = 0.01, 
+            size = 0)+
+# need to use the scale because rhe model scaled and centered
+ geom_point(data = spoken_cfmts_4_pca_train_test1,
+             aes(x = comp1_scale, y = comp2_scale, #because the model was scaled adn centred anything fro rpedict is scaled and centreed
+                 shape = expression,  # Different shapes for different expressions
+                 fill = expression),  # Fill colour based on expression
+             # colour = "black",       # Dark outer border
+             size = 3,               # Size of the points
+             stroke = .3
+            ) +         # Width of the outer border
+   scale_shape_manual(values = 21:25)+  # Use filled shapes
+  
+  geom_ysideboxplot(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = expression, y = comp2_scale, colour =expression, fill =expression), orientation = "x",alpha = .5)+
+  # scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+  geom_xsidedensity(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = comp1_scale, 
+                         y = ..density..,
+                        fill = expression,
+                        colour = expression
+                        ), 
+                    alpha = .5,
+                    show.legend =TRUE)+
+   scale_xsidey_continuous(breaks = NULL)+
+  # theme(axis.text.x = element_text(size = 10))+
+  theme_bw() +
+      plot_style+
+     scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+     theme(ggside.panel.scale = .2)+
+  scale_color_brewer(palette = "Dark2")+
+    scale_fill_brewer(palette = "Dark2")+
+  base_breaks_x(spoken_cfmts_4_pca_train_test1$comp1_scale) +
+  base_breaks_y(spoken_cfmts_4_pca_train_test1$comp2_scale)+
+  # cant soprt the line to y axix
+
+  xlab("comp1")+
+  ylab("comp2")
+
+
+boundaryplots$SPOKEN_comp1_2_mts
+```
+
+
+```{r}
+boundaryplots$SPOKEN_comp1_2_mts <- boundaryplots$SPOKEN_comp1_2_mts +
+  # ylim(-4,4)+
+  # ggtitle("comp1") +
+  theme(plot.title = element_text(size = 16*(sf+.5), hjust = 0.5),
+        # axis.title.x = element_blank(),
+       legend.position = "none"
+       )
+
+boundaryplots$SPOKEN_comp1_2_mts
+# boundaryplots$SPOKEN_PC1_2_mts+coord_fixed()
+
+```
+
+
+```{r}
+boundaryplots$SPOKEN_PC1_2_getleg<- ggplot() +
+
+
+ geom_point(data = spoken_cfmts_4_pca_train_test1,
+             aes(x = PC1_scale, y = PC2_scale,
+                 shape = expression,  # Different shapes for different expressions
+                 fill = expression),  # Fill colour based on expression
+             # colour = "black",       # Dark outer border
+             size = 3,               # Size of the points
+             stroke = .3
+            ) +         # Width of the outer border
+   scale_shape_manual(values = 21:25)+  # Use filled shapes
+  
+  geom_ysideboxplot(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = expression, y = PC2_scale, colour =expression, 
+                        fill =expression), orientation = "x",alpha = .5)+
+  # scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+  geom_xsidedensity(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = PC1_scale4, 
+                         y = ..density..,
+                        fill = expression,
+                        colour = expression
+                        ), 
+                    alpha = .5,
+                    show.legend =TRUE)+
+   scale_xsidey_continuous(breaks = NULL)+
+  # theme(axis.text.x = element_text(size = 10))+
+  theme_bw() +
+      plot_style+
+     scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+     theme(ggside.panel.scale = .2)+
+  scale_color_brewer(palette = "Dark2")+
+    scale_fill_brewer(palette = "Dark2")+
+
+  base_breaks_x(spoken_cfmts_4_pca_train_test1$PC1_scale) +
+  base_breaks_y(spoken_cfmts_4_pca_train_test1$PC2_scale)+
+  xlab("comp1")+
+  ylab("comp2")
+
+range(spoken_cfmts_4_pca_train_test1$PC2_scale)
+boundaryplots$SPOKEN_PC1_2_mts
+
+getleg2 <-cowplot::get_legend(boundaryplots$SPOKEN_PC1_2_getleg) 
+getleg2
+plot(getleg2)
+
+# for legeng
+
+```
+
+boundaryplots$SPOKEN_PC2_3
+
+
+```{r}
+require(ggside)
+# spoken_cfmts_4_pca_train_test1
+# spoken_mts_no0Sd_no0Sd_dcast_2_no_neutr
+# 4bound
+
+boundaryplots$SPOKEN_comp2_3_mts <-
+
+
+ggplot() +
+
+  geom_tile(data = grid_spken_4bound, #this compS are scaled in prediction due to the model
+            aes(x = comp2_scale, y = comp3_scale,
+              fill = predicted),#change the name here to predicted to avoid confusion
+            alpha = 0.01, 
+            size = 0)+
+
+ geom_point(data = spoken_cfmts_4_pca_train_test1,
+             aes(x = comp2_scale, y = comp3_scale,
+                 shape = expression,  # Different shapes for different expressions
+                 fill = expression),  # Fill colour based on expression
+             # colour = "black",       # Dark outer border
+             size = 3,               # Size of the points
+             stroke = .3
+            ) +         # Width of the outer border
+   scale_shape_manual(values = 21:25)+  # Use filled shapes
+  
+  geom_ysideboxplot(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = expression, y = comp3_scale, colour =expression, fill =expression), orientation = "x",alpha = .5)+
+  # scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+  geom_xsidedensity(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = comp2_scale, 
+                         y = ..density..,
+                        fill = expression,
+                        colour = expression
+                        ), 
+                    alpha = .5,
+                    show.legend =TRUE)+
+   scale_xsidey_continuous(breaks = NULL)+
+  # theme(axis.text.x = element_text(size = 10))+
+  theme_bw() +
+      plot_style+
+     scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+     theme(ggside.panel.scale = .2)+
+  scale_color_brewer(palette = "Dark2")+
+    scale_fill_brewer(palette = "Dark2")+
+# base_breaks_x()
+  base_breaks_x(spoken_cfmts_4_pca_train_test1$comp2_scale) +
+  base_breaks_y(spoken_cfmts_4_pca_train_test1$comp3_scale)+
+  xlab("comp2")+
+  ylab("comp3")
+
+boundaryplots$SPOKEN_comp2_3_mts
+
+boundaryplots$SPOKEN_comp2_3_mts  <- boundaryplots$SPOKEN_comp2_3_mts +
+  # ggtitle("comp1") +
+  theme(plot.title = element_text(size = 16*(sf+.5), hjust = 0.5),
+        # axis.title.x = element_blank(),
+       legend.position = "none"
+       )
+
+
+boundaryplots$SPOKEN_comp2_3_mts 
+
+```
+
+
+
+
+```{r}
+
+range(spoken_cfmts_4_pca_train_test1$comp2_scale)
+boundaryplots$SPOKEN_comp3_1_mts<-
+  
+  
+  
+  ggplot() +
+
+  geom_tile(data = grid_spken_4bound, 
+            aes(x = comp3_scale, y = comp1_scale,
+              fill = predicted),#change the name here to predicted to avoid confusion
+            alpha = 0.01, 
+            size = 0)+
+
+ geom_point(data = spoken_cfmts_4_pca_train_test1,
+             aes(x =comp3_scale, y = comp1_scale,
+                 shape = expression,  # Different shapes for different expressions
+                 fill = expression),  # Fill colour based on expression
+             # colour = "black",       # Dark outer border
+             size = 3,               # Size of the points
+             stroke = .3
+            ) +         # Width of the outer border
+   scale_shape_manual(values = 21:25)+  # Use filled shapes
+  
+  geom_ysideboxplot(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = expression, y = comp1_scale, colour =expression, fill =expression), orientation = "x",alpha = .5)+
+  # scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+  geom_xsidedensity(data = spoken_cfmts_4_pca_train_test1,
+                    aes(x = comp3_scale, 
+                         y = ..density..,
+                        fill = expression,
+                        colour = expression
+                        ), 
+                    alpha = .5,
+                    show.legend =TRUE)+
+   scale_xsidey_continuous(breaks = NULL)+
+  # theme(axis.text.x = element_text(size = 10))+
+  theme_bw() +
+      plot_style+
+     scale_ysidex_discrete(guide = guide_axis(angle = 90))+
+     theme(ggside.panel.scale = .2)+
+  scale_color_brewer(palette = "Dark2")+
+    scale_fill_brewer(palette = "Dark2")+
+
+  # using this rather than grid ensures reduced empty space
+  base_breaks_x(spoken_cfmts_4_pca_train_test1$comp3_scale) +
+  base_breaks_y(spoken_cfmts_4_pca_train_test1$comp1_scale)+
+  xlab("comp3")+
+  ylab("comp1")
+
+boundaryplots$SPOKEN_comp3_1_mts
+
+boundaryplots$SPOKEN_comp3_1_mts <- boundaryplots$SPOKEN_comp3_1_mts+
+  # ggtitle("comp1") +
+  theme(plot.title = element_text(size = 16*(sf+.5), hjust = 0.5),
+        # axis.title.x = element_blank(),
+       legend.position = "none"
+       )
+
+boundaryplots$SPOKEN_comp3_1_mts
+
+# boundaryplots$SPOKEN_comp3_1_mts+
+#   coord_cartesian(xlim = c(min(grid_spken_4bound$comp3), max(grid_spken_4bound$comp3)),
+#                   ylim = c(min(grid_spken_4bound$comp1), max(grid_spken_4bound$comp1)))
+```
+
+
+
+Heat map
+
+```{r}
+
+
+
+
+
+
+
+spoken_test_set_res_mts_no_neutr<- confusionMatrix(spoken_cfmts_4_pca_test$prediction, 
+                spoken_cfmts_4_pca_test$expression)
+
+
+spoken_test_set_res<- confusionMatrix(spoken_cfmts_4_pca_test$prediction,  spoken_cfmts_4_pca_test$expression, mode = "everything", positive="1")
+
+
+table(spoken_cfmts_4_pca_test$expression)
+# table(spoken_test_set_mts$prediction)
+
+spoken_test_set_mts$prediction 
+table(spoken_test_set_mts_no_neutr$expression)
+
+
+paper_plots$conf_mat_spoken <-
+as.data.frame(confusionMatrix(spoken_cfmts_4_pca_test$prediction , as.factor(spoken_cfmts_4_pca_test$expression), 
+                              mode = "everything", positive="1")[["table"]])%>%
+  mutate(prop = Freq/15)%>% #/15
+  
+  mutate(Reference = factor(Reference, levels = c('angry', 'happy', 'sad')),
+          Prediction = factor(Prediction, levels = c('angry', 'happy', 'sad')))%>%
+      ggplot(aes(Reference,Prediction, fill = prop))+
+    geom_tile()+
+       # scale_fill_viridis_c(option = "magma")
+    scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+
+    # 
+      # scale_fill_viridis_c(option = "magma")+
+  xlab("Expression")+
+  ylab("Prediction")+
+  
+  theme_bw()+
+  plot_style+
+  guides(fill=guide_colorbar(ticks.colour = NA))+
+  theme(panel.spacing = unit(1, "cm"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(angle = 45, hjust = 1), 
+        legend.position = "top"
+        )
+
+paper_plots$conf_mat_spoken
+
+
+
+```
+
+
+
+  
+
+combine spoken Figure 5
+remeber to update the names to match the plots new/final names names
+
+```{r}
+boundaryplots$SPOKEN_comp3_1_mts
+
+paper_plots$panel_spoken_fig5_ggside <-
+((boundaryplots$SPOKEN_comp1_2_mts )+
+  patchwork::wrap_elements(getleg2)+
+
+  paper_plots$ROC_spoken +
+  (boundaryplots$SPOKEN_comp2_3_mts )+
+    (boundaryplots$SPOKEN_comp3_1_mts )+
+  paper_plots$conf_mat_spoken)
+
+paper_plots$panel_spoken_fig5_ggside
+
+setwd(paths$export_figures)
+
+ggsave("panel_spoken_fig5_ggsidenew.tiff",  paper_plots$panel_spoken_fig5_ggside,
+       device = "tiff",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 800
+       )
+
+
+ggsave("panel_spoken_fig5_ggsidenew.png",  paper_plots$panel_spoken_fig5_ggside,
+       device = "png",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 800
+       )
+
+ggsave("panel_spoken_fig5_ggsidenew.pdf",  paper_plots$panel_spoken_fig5_ggside,
+       device = "pdf",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 800
+       )
+
+```

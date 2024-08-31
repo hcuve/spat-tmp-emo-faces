@@ -1,0 +1,244 @@
+---
+title: "Figure 6. Illustration of facial expression substate profiles."
+author: "Helio"
+date: "2024-08-23"
+output: html_document
+---
+
+
+dependenciesL Facial expression substates analyses.Rmd
+Figure 6
+
+
+```{r}
+# spoken p30 angry
+plts<- list()
+?recode
+spoken_posed_nmf_filtered$filename
+spoken_posed_nmf_filtered$cluster<- as.factor(recode(spoken_posed_nmf_filtered$cluster_label, "relaxed" = 1, "transition" = 2, "sustain" = 3))
+
+plts_substate_posed<-
+spoken_posed_nmf_filtered%>%  
+  subset(filename == "./cut_posed_angry_day1_p30.csv")%>%
+mutate(speed = sp_avg,
+       displacement = comp_delta_avg)%>%
+  select(c(bin_frame,speed,displacement,acceleration, comp1,comp2,comp3,cluster_label, cluster,filename))%>%
+  gather(variable, coef,-bin_frame,-cluster_label,-cluster, -filename,) %>%
+  mutate(var_type = if_else(grepl("speed", variable), "speed",  
+                                        if_else(grepl("displacement", variable), "displacement",  
+ if_else(grepl("comp", variable ), "NMF-comp","acceleration")))) %>%
+  mutate(var_type = factor(var_type, levels = c("NMF-comp", "displacement", "speed", "acceleration")))%>%
+
+group_by(var_type)%>%
+  mutate(coef_z = scale(coef))%>%
+  
+  group_by(variable, bin_frame,var_type, cluster)%>%
+  summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+  ggplot(aes(bin_frame, coef_z, group = variable))+
+  
+    geom_rect(aes(xmin = bin_frame, xmax = dplyr::lag(bin_frame), ymin = -Inf, ymax = Inf, fill =cluster),
+            alpha = .4)  +
+  
+    # geom_smooth(
+    #             method = "gam", se = FALSE, aes(col = "GAM")) +
+  # geom_smooth(aes(group = variable, linetype = var_type), size = 1)+
+  geom_line(aes(group = variable), size = 1.5)+
+   facet_grid(var_type~.)+
+  scale_fill_brewer(palette = "Dark2")+
+   # scale_fill_viridis_d(option = "inferno")+
+  theme_classic()+
+  ylab("z-score")+
+  xlab("time bin")+
+  # p$
+  p$graphstyle_int+
+  facet_wrap(~ var_type, ncol = 1)+
+  ggtitle("expression only example")
+
+
+
+plts_substate_posed
+  
+```
+
+
+# spoken
+
+# spoken p30 angry
+
+```{r}
+
+plts_substate_spoken <-
+
+spoken_posed_nmf_filtered%>%  
+  subset(filename == "./cut_spoken_happy_day1_p30.csv")%>%
+mutate(speed = sp_avg,
+       displacement = comp_delta_avg)%>%
+  select(c(filename,bin_frame,speed,displacement,acceleration, comp1,comp2,comp3,cluster_label,cluster))%>%
+  gather(variable, coef,-bin_frame,-cluster_label,-cluster,-filename) %>%
+  mutate(var_type = if_else(grepl("speed", variable), "speed",  
+                                        if_else(grepl("displacement", variable), "displacement",  
+ if_else(grepl("comp", variable ), "NMF-comp","acceleration")))) %>%
+  mutate(var_type = factor(var_type, levels = c("NMF-comp", "displacement", "speed", "acceleration")))%>%
+
+group_by(var_type)%>%
+  mutate(coef_z = scale(coef))%>%
+  
+  group_by(variable, bin_frame,var_type, cluster)%>%
+  summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+  ggplot(aes(bin_frame, coef_z, group = variable))+
+  
+    geom_rect(aes(xmin = bin_frame, xmax = dplyr::lag(bin_frame), ymin = -Inf, ymax = Inf, fill =cluster),
+            alpha = .4)  +
+  
+    # geom_smooth(
+    #             method = "gam", se = FALSE, aes(col = "GAM")) +
+  # geom_smooth(aes(group = variable, linetype = var_type), size = 1)+
+  geom_line(aes(group = variable), size = 1.5)+
+   facet_grid(var_type~.)+
+  scale_fill_brewer(palette = "Dark2")+
+   # scale_fill_viridis_d(option = "inferno")+
+  theme_classic()+
+  ylab("z-score")+
+  xlab("time bin")+
+  # p$
+  p$graphstyle_int+
+  facet_wrap(~ var_type, ncol = 1)+
+    ggtitle("emotive speech example")
+
+plts_substate_spoken
+```
+
+```{r}
+plts_substate_posed<- plts_substate_posed+
+  theme(axis.text.y = element_blank(),
+        legend.position = "top",
+        strip.text = element_text(size = 5))+
+    scale_fill_brewer(palette = "Dark2")
+
+plts_substate_spoken<-plts_substate_spoken+
+    theme(axis.text.y = element_blank(),
+        legend.position = "top",
+           strip.text = element_text(size = 5))+
+    scale_fill_brewer(palette = "Dark2")
+
+
+plts_substate_posed
+plts_substate_spoken
+
+
+```
+
+
+
+```{r}
+plts_substate_posed_HM<-
+spoken_posed_nmf_filtered%>%
+  subset(posed_spoken == "posed")%>%
+      ungroup()%>%
+  group_by(filename)%>%
+  # mutate(speed = speed/max(speed,na.rm = T))%>%
+  mutate(speed = sp_avg)%>%
+    # mutate(speed = speed/max(speed,na.rm = T))%>%
+  # mutate(idno = rep(1:333, each = 100))%>%
+  ggplot(aes(bin_frame, subject, fill = speed))+
+  geom_tile()+
+  facet_grid(~expression)+
+  ylab("subject")+
+  xlab("time bin")+
+  theme_classic()+
+  p$graphstyle_int+
+    scale_x_continuous(breaks=c(0,50,100), limits = c(0, 100))+
+     scale_fill_viridis_c(option = "magma")+
+   scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  theme(panel.spacing.x = unit(1.5, "lines"),
+        axis.text.y = element_blank())+
+        guides(fill=guide_colorbar(ticks.colour = NA))+
+  ggtitle("expression only")
+
+plts_substate_posed_HM
+```
+
+
+
+```{r}
+plts_substate_spok_HM<-
+spoken_posed_nmf_filtered%>%
+  subset(posed_spoken == "spoken")%>%
+      ungroup()%>%
+  mutate(speed = sp_avg)%>%
+  # mutate(idno = rep(1:333, each = 100))%>%
+  ggplot(aes(bin_frame, subject, fill = speed))+
+  geom_tile()+
+  facet_grid(~expression)+
+  ylab("subject")+
+  xlab("time bin")+
+    theme_classic()+
+  p$graphstyle_int+
+    scale_x_continuous(breaks=c(0,50,100), limits = c(0, 100))+
+   scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  theme(panel.spacing.x = unit(1.5, "lines"),
+        axis.text.y = element_blank())+
+        guides(fill=guide_colorbar(ticks.colour = NA))+
+    ggtitle("expressive speech")
+
+
+unique(spoken_posed_nmf_filtered$cluster_label)
+spoken_posed_nmf_filtered%>%
+  subset(posed_spoken == "spoken")%>%
+      ungroup()%>%
+  # mutate(speed = sp_avg)%>%
+
+    mutate(speed = speed/max(speed,na.rm = T))%>%
+  # mutate(idno = rep(1:333, each = 100))%>%
+  ggplot(aes(bin_frame, subject, fill = speed))+
+  geom_tile()+
+  facet_grid(~expression)+
+  ylab("subject")+
+  xlab("time bin")+
+    theme_classic()+
+  p$graphstyle_int+
+    scale_x_continuous(breaks=c(0,50,100), limits = c(0, 100))+
+   scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  theme(panel.spacing.x = unit(1.5, "lines"),
+        axis.text.y = element_blank())+
+        guides(fill=guide_colorbar(ticks.colour = NA))
+
+
+plts_substate_posed
+plts_substate_spoken
+plts_substate_posed_HM
+plts_substate_spok_HM
+
+
+```
+
+install.packages("patchwork")
+library(patchwork)
+
+patch work it
+
+```{r}
+
+plts_substate_illustration_hm <- ((((plts_substate_posed+ plts_substate_spoken)+plot_annotation(title = "sample expressions"))+   plot_layout(guides = "collect") & theme(legend.position = "top"))/ 
+  
+  ((plts_substate_posed_HM+plts_substate_spok_HM) + plot_layout(nrow = 2) & theme(legend.position = "top", legend.title.position = "top")))+
+  plot_layout(heights = c(1,2))+plot_annotation(tag_levels = 'A') 
+
+plts_substate_illustration_hm
+
+# on directoty ~ Data/ExportedFigures"
+ggsave("fig_6_plts_substate_illustration_hm.tiff", plts_substate_illustration_hm, device = "tiff",
+       width = 14, height = 14, dpi = 800)
+ggsave("fig_6_plts_substate_illustration_hm.png", 
+       plts_substate_illustration_hm, device = "png",
+       width = 14, height = 14, dpi = 800)
+
+
+ggsave("fig_6_plts_substate_illustration_hm.pdf", plts_substate_illustration_hm, device = "pdf",
+       width = 14, height = 14, dpi = 800)
+  
+```
+

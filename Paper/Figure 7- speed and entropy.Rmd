@@ -1,0 +1,240 @@
+---
+title: "Figure 7: Summary of speed and entropy of substate patterns."
+author: "Helio"
+date: "2024-08-23"
+output: html_document
+---
+
+Plots
+
+
+```{r}
+# install.packages("ggside")
+
+# speed
+plts_substate_speed_avg<-
+
+
+spoken_posed_nmf_filtered_agg%>%
+  mutate(cluster = recode(cluster_label, "relaxed" = "1", "sustain" = "2", "transition" = "3"))%>%
+  
+  group_by(subject,expression,cluster_label,cluster, posed_spoken)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  mutate(posed_spoken = factor(posed_spoken, 
+                               labels = c("expression only", "emotive speech")))%>%
+  ggplot(aes( cluster , speed, 
+             color = posed_spoken, shape =posed_spoken))+
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 1),alpha = .2) +
+ stat_summary(aes(group = posed_spoken, colour =posed_spoken, linetype =posed_spoken),fun.y = mean,  geom = "line",
+               position = position_dodge(width = 1), size = 1.5)+
+   stat_summary(aes(group = posed_spoken, colour =posed_spoken),
+                fun.y = mean,  
+                geom = "point",
+                 position = position_dodge(width = 1),size = 1.5)+
+    # stat_summary(aes(group = posed_spoken, colour =posed_spoken),  geom = "pointrange")+
+  stat_summary(fun.data = "mean_se", 
+               geom = "errorbar",
+               width  = .5,
+               size = 1.5,
+               position = position_dodge(width = 1)
+    # fun.y = mean,
+               # fun.ymin = function(x) mean(x) - sd(x), 
+               # fun.ymax = function(x) mean(x) + sd(x), 
+               # geom = "pointrange"
+    # geom = "errorbar"
+    ) +
+    facet_grid(~expression)+
+  xlab("substate cluster")+
+    ylab("speed (au)")+
+  scale_color_brewer(palette = "Dark2")+
+      scale_fill_brewer(palette = "Dark2")+
+ggside::geom_ysidedensity(aes(x=stat(density), color = posed_spoken,  fill = posed_spoken), alpha = .5)+
+  ggside::geom_xsideboxplot(aes(group = cluster), alpha = .5, orientation = "x")+
+   # ggside::geom_xsideboxplot(aes(group = cluster), alpha = .5)+
+
+  theme_classic()+
+  theme(legend.position = "top")+
+  p$graphstyle_int+
+    theme(legend.title = element_blank())+
+      theme(ggside.panel.scale = .5,
+          ggside.axis.text.y = element_blank(),
+             ggside.axis.text.x = element_blank())
+
+plts_substate_speed_avg
+```
+
+
+```{r}
+
+  
+plts_substate_entropy_stat<-
+  
+spoken_posed_nmf_entropy%>%
+    subset(expression!= "neutral")%>%
+  group_by(subject,expression,posed_spoken)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+
+   ggplot(aes( expression , entropy_clust_norm, 
+             color = posed_spoken, shape =posed_spoken))+
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 1),alpha = .2) +
+ stat_summary(aes(group = posed_spoken, colour =posed_spoken, linetype =posed_spoken),fun.y = mean,  geom = "line",
+               position = position_dodge(width = 1), size = 1.5)+
+   stat_summary(aes(group = posed_spoken, colour =posed_spoken),
+                fun.y = mean,  
+                geom = "point",
+                 position = position_dodge(width = 1),size = 1.5)+
+    # stat_summary(aes(group = posed_spoken, colour =posed_spoken),  geom = "pointrange")+
+  stat_summary(fun.data = "mean_se", 
+               geom = "errorbar",
+               width  = .5,
+               size = 1.5,
+               position = position_dodge(width = 1)
+
+    ) +
+    # facet_grid(~expression)+
+  xlab("emotion")+
+   ylab("stationary entropy (bits)")+
+  scale_color_brewer(palette = "Dark2")+
+      scale_fill_brewer(palette = "Dark2")+
+ggside::geom_ysidedensity(aes(x=stat(density), color = posed_spoken,  fill = posed_spoken), alpha = .5)+
+    ggside::geom_xsideboxplot(aes(group = expression), alpha = .5, orientation = "x")+
+
+  theme_classic()+
+  theme(legend.position = "top")+
+  p$graphstyle_int+
+    theme(legend.title = element_blank())+
+      theme(ggside.panel.scale = .5,
+          ggside.axis.text.y = element_blank())
+
+
+
+plts_substate_entropy_stat
+```
+
+
+
+
+
+```{r}
+
+plts_substate_entropy_trans<-
+spoken_posed_nmf_trans_entropy%>%
+  subset(expression != "neutral")%>%
+  # mutate(posed_spoken = if_else(posed_spoken == "posed", "expresion only",
+  #                               "emotive speech"))%>%
+  mutate(posed_spoken = factor(posed_spoken, 
+                               labels = c("expression only", "emotive speech")))%>%
+
+  group_by(subject,expression,posed_spoken)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  
+   ggplot(aes( expression , trans_entropy_norm, 
+             color = posed_spoken, shape =posed_spoken))+
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 1),alpha = .2) +
+ stat_summary(aes(group = posed_spoken, colour =posed_spoken, linetype =posed_spoken),fun.y = mean,  geom = "line",
+               position = position_dodge(width = 1), size = 1.5)+
+   stat_summary(aes(group = posed_spoken, colour =posed_spoken),
+                fun.y = mean,  
+                geom = "point",
+                 position = position_dodge(width = 1),size = 1.5)+
+    # stat_summary(aes(group = posed_spoken, colour =posed_spoken),  geom = "pointrange")+
+  stat_summary(fun.data = "mean_se", 
+               geom = "errorbar",
+               width  = .5,
+               size = 1.5,
+               position = position_dodge(width = 1)
+
+    ) +
+    # facet_grid(~expression)+
+  xlab("emotion")+
+     # ylab("transition entropy (bits)")+
+  
+  ylab("entropy (norm)")+
+     # ylab("entropy (bits)")+
+  scale_color_brewer(palette = "Dark2")+
+      scale_fill_brewer(palette = "Dark2")+
+ggside::geom_ysidedensity(aes(x=stat(density), color = posed_spoken,  fill = posed_spoken), alpha = .5)+
+  ggside::geom_xsideboxplot(aes( group = expression), alpha = .5, orientation = "x")+
+
+  theme_classic()+
+  theme(legend.position = "top")+
+  p$graphstyle_int+
+    theme(legend.title = element_blank())+
+      theme(ggside.panel.scale = .5,
+          ggside.axis.text.y = element_blank(),
+           ggside.axis.text.x = element_blank())
+
+
+plts_substate_entropy_trans
+```
+
+
+
+```{r}
+ggsave("plts_substate_entropy.tiff", plts_substate_entropy, device = "tiff",
+       width = 14, height = 14, dpi = 800)
+
+
+```
+
+
+
+```{r}
+((plts_substate_speed_avg/
+plts_substate_freq)|(guide_area() +
+plts_substate_entropy))+
+   plot_layout(guides = "collect")+
+  plot_layout(nrow = 2,widths = c(2.5,1.5))
+
+# plts_substate_speed_entropy<-
+# (plts_substate_speed_avg/plts_substate_entropy_stat)+
+#    plot_layout(guides = "collect")& theme(legend.position = "top")
+#   plot_layout(nrow = 2,widths = c(2.5,1.5))
+  
+  require(patchwork)
+#   plts_substate_speed_entropy<-
+# ((plts_substate_speed_avg+theme(axis.title.x = element_blank()))/(plts_substate_entropy_stat|plts_substate_entropy_trans))+
+#    plot_layout(guides = "collect")& theme(legend.position = "top")
+# 
+#   
+#   
+#     plts_substate_speed_entropy_freq<-
+# ((plts_substate_speed_avg+theme(axis.title.x = element_blank()))/(plts_substate_entropy+theme(axis.title.x = element_blank()))/plts_substate_freq)+
+#    plot_layout(guides = "collect")+ plot_annotation(tag_levels = 'A') & theme(legend.position = "top")
+#   
+
+
+# ((plts_substate_speed_avg)+
+#     plts_substate_entropy_trans)+
+#    plot_layout(guides = "collect", nrow = 1, widths = c(1.5,.5))& theme(legend.position = "top")
+#   
+# ggsave("plts_substate_speed_entropy.tiff", plts_substate_speed_entropy, device = "tiff",
+#        width = 12, height = 10, dpi = 800)
+# 
+# ggsave("plts_substate_speed_entropy_freq.tiff", plts_substate_speed_entropy_freq, device = "tiff",
+#        width = 12, height = 12, dpi = 800)
+
+
+ plts_substate_entropy_trans<- plts_substate_entropy_trans+
+   theme( axis.text.x = element_text(angle = 45, hjust = 1))+  scale_ysidex_continuous(guide = guide_axis(angle = 0))
+
+ plts_substate_entropy_trans
+ plts_substate_speed_avg
+ 
+paper_plots$Fig7_speed_entropy<-
+(plts_substate_speed_avg+
+   plts_substate_entropy_trans)+
+   plot_layout(guides = "collect", nrow = 1, widths = c(1.5,.5))& theme(legend.position = "top")
+paper_plots$Fig7_speed_entropy
+
+
+ggsave("Fig7_speed_entropy.png", paper_plots$Fig7_speed_entropy, device = "png",
+       width = 12, height = 5, dpi = 800)
+ggsave("Fig7_speed_entropy.tiff", paper_plots$Fig7_speed_entropy, device = "tiff",
+       width = 12, height = 5, dpi = 800)
+ggsave("Fig7_speed_entropy.pdf", paper_plots$Fig7_speed_entropy, device = "pdf",
+       width = 10, height = 5, dpi = 800)
+
+
+```
+
