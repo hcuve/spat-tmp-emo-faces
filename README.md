@@ -15,15 +15,13 @@ All scripts related to the paper can be found in the `Paper` folder. The scripts
 5. **Supervised Classification:** Scripts for performing supervised classification analysis.
 6. **Figures:** Scripts to generate the figures presented in the paper.
 
-Please follow the order of the scripts as they appear in the manuscript for accurate replication of the results.
 
 ## Data Availability
 
-The raw data used in this study is available at: [https://osf.io/3nzk7/](https://osf.io/3nzk7/)
+Supporting data is available at: [https://osf.io/3nzk7/](https://osf.io/3nzk7/)
 
 
 
 ## To-Do
-- [ ] Move older code to local env folder
 
 - [ ] Write a few wiki walkthroughs for different parts of the code to aid understanding and usage.
