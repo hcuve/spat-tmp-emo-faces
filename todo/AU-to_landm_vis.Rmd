@@ -3813,7 +3813,7 @@ plot_dell_spoken
 store pngs for github
 ```{r}
 
-setwd("/Users/pw22812/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Github/NewGit/halo_faces2/ggtextimgs")
+setwd("~Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Github/NewGit/halo_faces2/ggtextimgs")
 ggsave("comp1_posed.png", device = "png", plot_dell_posed$posed_c1,
        width = 700,
        height = 700,
