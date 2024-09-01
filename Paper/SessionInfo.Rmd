@@ -1,0 +1,318 @@
+---
+title: "Untitled"
+author: "Helio"
+date: "2024-09-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+sessionInfo()
+devtools::session_info()
+```
+
+01/09/2024
+
+Registered S3 method overwritten by 'htmlwidgets':
+  method           from         
+  print.htmlwidget tools:rstudio
+─ Session info ─────────────────────────────────────────────
+ setting  value
+ version  R version 4.4.1 (2024-06-14)
+ os       macOS Sonoma 14.6.1
+ system   x86_64, darwin20
+ ui       RStudio
+ language (EN)
+ collate  en_US.UTF-8
+ ctype    en_US.UTF-8
+ tz       Europe/London
+ date     2024-09-01
+ rstudio  2024.04.2+764 Chocolate Cosmos (desktop)
+ pandoc   3.1.11 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/x86_64/ (via rmarkdown)
+
+─ Packages ─────────────────────────────────────────────────
+ package       * version    date (UTC) lib source
+ abind           1.4-5      2016-07-21 [1] CRAN (R 4.4.0)
+ backports       1.4.1      2021-12-13 [1] CRAN (R 4.4.0)
+ bigmemory     * 4.6.4      2024-01-09 [1] CRAN (R 4.4.0)
+ bigmemory.sri   0.1.8      2024-01-10 [1] CRAN (R 4.4.0)
+ Biobase       * 2.63.1     2024-04-17 [1] Bioconductor 3.19 (R 4.4.0)
+ BiocGenerics  * 0.49.1     2024-04-17 [1] Bioconductor 3.19 (R 4.4.0)
+ boot            1.3-30     2024-02-26 [1] CRAN (R 4.4.1)
+ broom           1.0.5      2023-06-09 [1] CRAN (R 4.4.0)
+ cachem          1.0.8      2023-05-01 [1] CRAN (R 4.4.0)
+ car             3.1-2      2023-03-30 [1] CRAN (R 4.4.0)
+ carData         3.0-5      2022-01-06 [1] CRAN (R 4.4.0)
+ caret           6.0-94     2023-03-21 [1] CRAN (R 4.4.0)
+ cellranger      1.1.0      2016-07-27 [1] CRAN (R 4.4.0)
+ class           7.3-22     2023-05-03 [1] CRAN (R 4.4.1)
+ cli             3.6.2      2023-12-11 [1] CRAN (R 4.4.0)
+ cluster         2.1.6      2023-12-01 [1] CRAN (R 4.4.1)
+ CMFMTS          0.1.0      2024-05-01 [1] Github (fjbaldan/CMFMTS@a9cf78d)
+ codetools       0.2-20     2024-03-31 [1] CRAN (R 4.4.1)
+ coin            1.4-3      2023-09-27 [1] CRAN (R 4.4.0)
+ colorspace      2.1-0      2023-01-23 [1] CRAN (R 4.4.0)
+ combinat        0.0-8      2012-10-29 [1] CRAN (R 4.4.0)
+ crayon          1.5.2      2022-09-29 [1] CRAN (R 4.4.0)
+ curl            5.2.1      2024-03-01 [1] CRAN (R 4.4.0)
+ data.table      1.15.4     2024-03-30 [1] CRAN (R 4.4.0)
+ DescTools       0.99.54    2024-02-03 [1] CRAN (R 4.4.0)
+ devtools        2.4.5      2022-10-11 [1] CRAN (R 4.4.0)
+ digest          0.6.35     2024-03-11 [1] CRAN (R 4.4.0)
+ doParallel      1.0.17     2022-02-07 [1] CRAN (R 4.4.0)
+ dplyr         * 1.1.4      2023-11-17 [1] CRAN (R 4.4.0)
+ e1071           1.7-14     2023-12-06 [1] CRAN (R 4.4.0)
+ ellipsis        0.3.2      2021-04-29 [1] CRAN (R 4.4.0)
+ emmeans         1.10.1     2024-04-06 [1] CRAN (R 4.4.0)
+ entropy         1.3.1      2021-10-02 [1] CRAN (R 4.4.0)
+ estimability    1.5        2024-02-20 [1] CRAN (R 4.4.0)
+ evaluate        0.23       2023-11-01 [1] CRAN (R 4.4.0)
+ Exact           3.3        2024-07-21 [1] CRAN (R 4.4.0)
+ expm            0.999-9    2024-01-11 [1] CRAN (R 4.4.0)
+ fansi           1.0.6      2023-12-08 [1] CRAN (R 4.4.0)
+ fastmap         1.1.1      2023-02-24 [1] CRAN (R 4.4.0)
+ forcats       * 1.0.0      2023-01-29 [1] CRAN (R 4.4.0)
+ foreach         1.5.2      2022-02-02 [1] CRAN (R 4.4.0)
+ forecast        8.22.0     2024-03-04 [1] CRAN (R 4.4.0)
+ fracdiff        1.5-3      2024-02-01 [1] CRAN (R 4.4.0)
+ fs              1.6.4      2024-04-25 [1] CRAN (R 4.4.0)
+ future          1.33.2     2024-03-26 [1] CRAN (R 4.4.0)
+ future.apply    1.11.2     2024-03-28 [1] CRAN (R 4.4.0)
+ generics        0.1.3      2022-07-05 [1] CRAN (R 4.4.0)
+ ggplot2       * 3.5.1      2024-04-23 [1] CRAN (R 4.4.0)
+ ggpubr          0.6.0      2023-02-10 [1] CRAN (R 4.4.0)
+ ggside          0.3.1      2024-03-01 [1] CRAN (R 4.4.0)
+ ggsignif        0.6.4      2022-10-13 [1] CRAN (R 4.4.0)
+ gld             2.6.6      2022-10-23 [1] CRAN (R 4.4.0)
+ globals         0.16.3     2024-03-08 [1] CRAN (R 4.4.0)
+ glue            1.7.0      2024-01-09 [1] CRAN (R 4.4.0)
+ gower           1.0.1      2022-12-22 [1] CRAN (R 4.4.0)
+ gridBase        0.4-7      2014-02-24 [1] CRAN (R 4.4.0)
+ GrpString       0.3.2      2017-08-15 [1] CRAN (R 4.4.0)
+ gtable          0.3.5      2024-04-22 [1] CRAN (R 4.4.0)
+ hardhat         1.3.1      2024-02-02 [1] CRAN (R 4.4.0)
+ hms             1.1.3      2023-03-21 [1] CRAN (R 4.4.0)
+ htmltools       0.5.8.1    2024-04-04 [1] CRAN (R 4.4.0)
+ htmlwidgets     1.6.4      2023-12-06 [1] CRAN (R 4.4.0)
+ httpuv          1.6.15     2024-03-26 [1] CRAN (R 4.4.0)
+ httr            1.4.7      2023-08-15 [1] CRAN (R 4.4.0)
+ insight         0.20.2     2024-07-13 [1] CRAN (R 4.4.0)
+ ipred           0.9-14     2023-03-09 [1] CRAN (R 4.4.0)
+ iterators       1.0.14     2022-02-05 [1] CRAN (R 4.4.0)
+ knitr           1.46       2024-04-06 [1] CRAN (R 4.4.0)
+ later           1.3.2      2023-12-06 [1] CRAN (R 4.4.0)
+ lattice         0.22-6     2024-03-20 [1] CRAN (R 4.4.1)
+ lava            1.8.0      2024-03-05 [1] CRAN (R 4.4.0)
+ libcoin         1.0-10     2023-09-27 [1] CRAN (R 4.4.0)
+ lifecycle       1.0.4      2023-11-07 [1] CRAN (R 4.4.0)
+ listenv         0.9.1      2024-01-29 [1] CRAN (R 4.4.0)
+ lme4          * 1.1-35.3   2024-04-16 [1] CRAN (R 4.4.0)
+ lmerTest      * 3.1-3      2020-10-23 [1] CRAN (R 4.4.0)
+ lmom            3.0        2023-08-29 [1] CRAN (R 4.4.0)
+ lmtest          0.9-40     2022-03-21 [1] CRAN (R 4.4.0)
+ lubridate     * 1.9.3      2023-09-27 [1] CRAN (R 4.4.0)
+ magrittr        2.0.3      2022-03-30 [1] CRAN (R 4.4.0)
+ MASS            7.3-60.2   2024-04-26 [1] CRAN (R 4.4.1)
+ Matrix        * 1.7-0      2024-04-26 [1] CRAN (R 4.4.1)
+ matrixStats     1.3.0      2024-04-11 [1] CRAN (R 4.4.0)
+ memoise         2.0.1      2021-11-26 [1] CRAN (R 4.4.0)
+ mgcv            1.9-1      2023-12-21 [1] CRAN (R 4.4.1)
+ mime            0.12       2021-09-28 [1] CRAN (R 4.4.0)
+ miniUI          0.1.1.1    2018-05-18 [1] CRAN (R 4.4.0)
+ minqa           1.2.6      2023-09-11 [1] CRAN (R 4.4.0)
+ ModelMetrics    1.2.2.2    2020-03-17 [1] CRAN (R 4.4.0)
+ modeltools      0.2-23     2020-03-05 [1] CRAN (R 4.4.0)
+ multcomp        1.4-26     2024-07-18 [1] CRAN (R 4.4.0)
+ multcompView    0.1-10     2024-03-08 [1] CRAN (R 4.4.0)
+ munsell         0.5.1      2024-04-01 [1] CRAN (R 4.4.0)
+ mvtnorm         1.2-4      2023-11-27 [1] CRAN (R 4.4.0)
+ nlme            3.1-164    2023-11-27 [1] CRAN (R 4.4.1)
+ nloptr          2.0.3      2022-05-26 [1] CRAN (R 4.4.0)
+ NMF             0.27       2024-02-08 [1] CRAN (R 4.4.0)
+ nnet            7.3-19     2023-05-03 [1] CRAN (R 4.4.1)
+ nortest         1.0-4      2015-07-30 [1] CRAN (R 4.4.0)
+ numDeriv        2016.8-1.1 2019-06-06 [1] CRAN (R 4.4.0)
+ parallelly      1.37.1     2024-02-29 [1] CRAN (R 4.4.0)
+ patchwork       1.2.0      2024-01-08 [1] CRAN (R 4.4.0)
+ pillar          1.9.0      2023-03-22 [1] CRAN (R 4.4.0)
+ pkgbuild        1.4.4      2024-03-17 [1] CRAN (R 4.4.0)
+ pkgconfig       2.0.3      2019-09-22 [1] CRAN (R 4.4.0)
+ pkgload         1.3.4      2024-01-16 [1] CRAN (R 4.4.0)
+ plyr            1.8.9      2023-10-02 [1] CRAN (R 4.4.0)
+ pracma          2.4.4      2023-11-10 [1] CRAN (R 4.4.0)
+ pROC            1.18.5     2023-11-01 [1] CRAN (R 4.4.0)
+ prodlim         2023.08.28 2023-08-28 [1] CRAN (R 4.4.0)
+ profvis         0.3.8      2023-05-02 [1] CRAN (R 4.4.0)
+ promises        1.3.0      2024-04-05 [1] CRAN (R 4.4.0)
+ proxy           0.4-27     2022-06-09 [1] CRAN (R 4.4.0)
+ purrr         * 1.0.2      2023-08-10 [1] CRAN (R 4.4.0)
+ quadprog        1.5-8      2019-11-20 [1] CRAN (R 4.4.0)
+ quantmod        0.4.26     2024-02-14 [1] CRAN (R 4.4.0)
+ R.methodsS3     1.8.2      2022-06-13 [1] CRAN (R 4.4.0)
+ R.oo            1.26.0     2024-01-24 [1] CRAN (R 4.4.0)
+ R.utils         2.12.3     2023-11-18 [1] CRAN (R 4.4.0)
+ R6              2.5.1      2021-08-19 [1] CRAN (R 4.4.0)
+ randomForest    4.7-1.1    2022-05-23 [1] CRAN (R 4.4.0)
+ RColorBrewer    1.1-3      2022-04-03 [1] CRAN (R 4.4.0)
+ rcompanion      2.4.36     2024-05-27 [1] CRAN (R 4.4.0)
+ Rcpp            1.0.12     2024-01-09 [1] CRAN (R 4.4.0)
+ readr         * 2.1.5      2024-01-10 [1] CRAN (R 4.4.0)
+ readxl          1.4.3      2023-07-06 [1] CRAN (R 4.4.0)
+ recipes         1.0.10     2024-02-18 [1] CRAN (R 4.4.0)
+ registry        0.5-1      2019-03-05 [1] CRAN (R 4.4.0)
+ remotes         2.5.0      2024-03-17 [1] CRAN (R 4.4.0)
+ report          0.5.9      2024-07-10 [1] CRAN (R 4.4.0)
+ reshape2        1.4.4      2020-04-09 [1] CRAN (R 4.4.0)
+ rlang           1.1.3      2024-01-10 [1] CRAN (R 4.4.0)
+ rmarkdown       2.26       2024-03-05 [1] CRAN (R 4.4.0)
+ rngtools        1.5.2      2021-09-20 [1] CRAN (R 4.4.0)
+ ROCR          * 1.0-11     2020-05-02 [1] CRAN (R 4.4.0)
+ rootSolve       1.8.2.4    2023-09-21 [1] CRAN (R 4.4.0)
+ rpart           4.1.23     2023-12-05 [1] CRAN (R 4.4.1)
+ rstatix         0.7.2      2023-02-01 [1] CRAN (R 4.4.0)
+ rstudioapi      0.16.0     2024-03-24 [1] CRAN (R 4.4.0)
+ sandwich        3.1-0      2023-12-11 [1] CRAN (R 4.4.0)
+ scales          1.3.0      2023-11-28 [1] CRAN (R 4.4.0)
+ sessioninfo     1.2.2      2021-12-06 [1] CRAN (R 4.4.0)
+ shiny           1.8.1.1    2024-04-02 [1] CRAN (R 4.4.0)
+ statcomp        0.1.0      2019-10-28 [1] CRAN (R 4.4.0)
+ stringi         1.8.3      2023-12-11 [1] CRAN (R 4.4.0)
+ stringr       * 1.5.1      2023-11-14 [1] CRAN (R 4.4.0)
+ survival        3.6-4      2024-04-24 [1] CRAN (R 4.4.1)
+ synchronicity * 1.3.10     2024-01-10 [1] CRAN (R 4.4.0)
+ TH.data         1.1-2      2023-04-17 [1] CRAN (R 4.4.0)
+ tibble        * 3.2.1      2023-03-20 [1] CRAN (R 4.4.0)
+ tidyr         * 1.3.1      2024-01-24 [1] CRAN (R 4.4.0)
+ tidyselect      1.2.1      2024-03-11 [1] CRAN (R 4.4.0)
+ tidyverse     * 2.0.0      2023-02-22 [1] CRAN (R 4.4.0)
+ timechange      0.3.0      2024-01-18 [1] CRAN (R 4.4.0)
+ timeDate        4032.109   2023-12-14 [1] CRAN (R 4.4.0)
+ tseries         0.10-55    2023-12-06 [1] CRAN (R 4.4.0)
+ tsfeatures      1.1.1      2023-08-28 [1] CRAN (R 4.4.0)
+ TTR             0.24.4     2023-11-28 [1] CRAN (R 4.4.0)
+ tzdb            0.4.0      2023-05-12 [1] CRAN (R 4.4.0)
+ urca            1.3-3      2022-08-29 [1] CRAN (R 4.4.0)
+ urlchecker      1.0.1      2021-11-30 [1] CRAN (R 4.4.0)
+ usethis         2.2.3      2024-02-19 [1] CRAN (R 4.4.0)
+ utf8            1.2.4      2023-10-22 [1] CRAN (R 4.4.0)
+ uuid            1.2-0      2024-01-14 [1] CRAN (R 4.4.0)
+ vctrs           0.6.5      2023-12-01 [1] CRAN (R 4.4.0)
+ withr           3.0.0      2024-01-16 [1] CRAN (R 4.4.0)
+ xfun            0.43       2024-03-25 [1] CRAN (R 4.4.0)
+ xtable          1.8-4      2019-04-21 [1] CRAN (R 4.4.0)
+ xts             0.13.2     2024-01-21 [1] CRAN (R 4.4.0)
+ yaml            2.3.8      2023-12-11 [1] CRAN (R 4.4.0)
+ zoo             1.8-12     2023-04-13 [1] CRAN (R 4.4.0)
+
+ [1] /Library/Frameworks/R.framework/Versions/4.4-x86_64/Resources/library
+
+
+
+
+##########
+R version 4.4.1 (2024-06-14)
+Platform: x86_64-apple-darwin20
+Running under: macOS Sonoma 14.6.1
+
+Matrix products: default
+BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+LAPACK: /Library/Frameworks/R.framework/Versions/4.4-x86_64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+
+Random number generation:
+ RNG:     L'Ecuyer-CMRG 
+ Normal:  Inversion 
+ Sample:  Rejection 
+ 
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+time zone: Europe/London
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods  
+[7] base     
+
+other attached packages:
+ [1] lubridate_1.9.3      forcats_1.0.0       
+ [3] dplyr_1.1.4          purrr_1.0.2         
+ [5] readr_2.1.5          tidyr_1.3.1         
+ [7] tibble_3.2.1         ggplot2_3.5.1       
+ [9] tidyverse_2.0.0      stringr_1.5.1       
+[11] lmerTest_3.1-3       lme4_1.1-35.3       
+[13] Matrix_1.7-0         ROCR_1.0-11         
+[15] synchronicity_1.3.10 bigmemory_4.6.4     
+[17] Biobase_2.63.1       BiocGenerics_0.49.1 
+
+loaded via a namespace (and not attached):
+  [1] splines_4.4.1        R.oo_1.26.0         
+  [3] cellranger_1.1.0     hardhat_1.3.1       
+  [5] pROC_1.18.5          xts_0.13.2          
+  [7] rpart_4.1.23         lifecycle_1.0.4     
+  [9] rstatix_0.7.2        doParallel_1.0.17   
+ [11] globals_0.16.3       lattice_0.22-6      
+ [13] MASS_7.3-60.2        insight_0.20.2      
+ [15] backports_1.4.1      magrittr_2.0.3      
+ [17] rmarkdown_2.26       yaml_2.3.8          
+ [19] fracdiff_1.5-3       NMF_0.27            
+ [21] ggside_0.3.1         gld_2.6.6           
+ [23] minqa_1.2.6          RColorBrewer_1.1-3  
+ [25] multcomp_1.4-26      abind_1.4-5         
+ [27] pkgload_1.3.4        expm_0.999-9        
+ [29] quadprog_1.5-8       R.utils_2.12.3      
+ [31] nnet_7.3-19          pracma_2.4.4        
+ [33] TH.data_1.1-2        sandwich_3.1-0      
+ [35] ipred_0.9-14         lava_1.8.0          
+ [37] listenv_0.9.1        nortest_1.0-4       
+ [39] parallelly_1.37.1    codetools_0.2-20    
+ [41] coin_1.4-3           tidyselect_1.2.1    
+ [43] urca_1.3-3           matrixStats_1.3.0   
+ [45] stats4_4.4.1         caret_6.0-94        
+ [47] e1071_1.7-14         survival_3.6-4      
+ [49] iterators_1.0.14     emmeans_1.10.1      
+ [51] foreach_1.5.2        tools_4.4.1         
+ [53] statcomp_0.1.0       DescTools_0.99.54   
+ [55] CMFMTS_0.1.0         Rcpp_1.0.12         
+ [57] glue_1.7.0           prodlim_2023.08.28  
+ [59] xfun_0.43            mgcv_1.9-1          
+ [61] TTR_0.24.4           withr_3.0.0         
+ [63] numDeriv_2016.8-1.1  combinat_0.0-8      
+ [65] fastmap_1.1.1        boot_1.3-30         
+ [67] fansi_1.0.6          entropy_1.3.1       
+ [69] digest_0.6.35        timechange_0.3.0    
+ [71] R6_2.5.1             estimability_1.5    
+ [73] colorspace_2.1-0     R.methodsS3_1.8.2   
+ [75] utf8_1.2.4           generics_0.1.3      
+ [77] data.table_1.15.4    recipes_1.0.10      
+ [79] class_7.3-22         report_0.5.9        
+ [81] httr_1.4.7           ModelMetrics_1.2.2.2
+ [83] pkgconfig_2.0.3      gtable_0.3.5        
+ [85] Exact_3.3            timeDate_4032.109   
+ [87] modeltools_0.2-23    forecast_8.22.0     
+ [89] registry_0.5-1       lmtest_0.9-40       
+ [91] htmltools_0.5.8.1    carData_3.0-5       
+ [93] tseries_0.10-55      multcompView_0.1-10 
+ [95] scales_1.3.0         lmom_3.0            
+ [97] gower_1.0.1          bigmemory.sri_0.1.8 
+ [99] knitr_1.46           rstudioapi_0.16.0   
+[101] tzdb_0.4.0           reshape2_1.4.4      
+[103] uuid_1.2-0           nlme_3.1-164        
+[105] curl_5.2.1           nloptr_2.0.3        
+[107] proxy_0.4-27         zoo_1.8-12          
+[109] rootSolve_1.8.2.4    parallel_4.4.1      
+[111] libcoin_1.0-10       pillar_1.9.0        
+[113] grid_4.4.1           vctrs_0.6.5         
+[115] randomForest_4.7-1.1 ggpubr_0.6.0        
+[117] car_3.1-2            xtable_1.8-4        
+[119] cluster_2.1.6        evaluate_0.23       
+[121] mvtnorm_1.2-4        cli_3.6.2           
+[123] compiler_4.4.1       rlang_1.1.3         
+[125] crayon_1.5.2         rngtools_1.5.2      
+[127] future.apply_1.11.2  ggsignif_0.6.4      
+[129] plyr_1.8.9           stringi_1.8.3       
+[131] gridBase_0.4-7       munsell_0.5.1       
+[133] rcompanion_2.4.36    hms_1.1.3           
+[135] patchwork_1.2.0      GrpString_0.3.2     
+[137] future_1.33.2        tsfeatures_1.1.1    
+[139] broom_1.0.5          quantmod_0.4.26     
+[141] readxl_1.4.3  
