@@ -824,3 +824,11 @@ summary(rslt_trans_entropy)
 
 
 
+
+save.image(file = paste0(paths$envRdata,
+                         "spt_tmp_emo_faces_subm1_ploscb_",
+                         format(Sys.time(), "%d-%m-%Y_%H-%M-%S"),
+                         ".RData"))
+
+
+
