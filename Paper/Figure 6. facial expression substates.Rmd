@@ -181,7 +181,7 @@ spoken_posed_nmf_filtered%>%
   theme(panel.spacing.x = unit(1.5, "lines"),
         axis.text.y = element_blank())+
         guides(fill=guide_colorbar(ticks.colour = NA))+
-    ggtitle("expressive speech")
+    ggtitle("emotive speech")
 
 
 unique(spoken_posed_nmf_filtered$cluster_label)
