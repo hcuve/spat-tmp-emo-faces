@@ -18,6 +18,5 @@ All scripts related to the paper can be found in the `Paper` folder. The scripts
 
 ## Data Availability
 
-Supporting data is available at: [https://osf.io/3nzk7/](https://osf.io/3nzk7/)
-
+Supporting data is available at [https://osf.io/3nzk7/?view_only=db7d9467423f42b794385e549b6aa96a](https://osf.io/3nzk7/?view_only=db7d9467423f42b794385e549b6aa96a)
 

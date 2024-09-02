@@ -230,15 +230,47 @@ plts_substate_illustration_hm <- ((((plts_substate_posed+ plts_substate_spoken)+
 plts_substate_illustration_hm
 
 # on directoty ~ Data/ExportedFigures"
-ggsave("fig_6_plts_substate_illustration_hm.tiff", plts_substate_illustration_hm, device = "tiff",
-       width = 14, height = 14, dpi = 800)
-ggsave("fig_6_plts_substate_illustration_hm.png", 
-       plts_substate_illustration_hm, device = "png",
-       width = 14, height = 14, dpi = 800)
+
+# Use ggsave with the full path
+ggsave(
+  filename = file.path(paths$export_figs, "fig_6_plts_substate_illustration_hm.tiff"),
+  plot = plts_substate_illustration_hm,
+  device = "tiff",
+  width = 14,
+  height = 14,
+  dpi = 800
+)
 
 
-ggsave("fig_6_plts_substate_illustration_hm.pdf", plts_substate_illustration_hm, device = "pdf",
-       width = 14, height = 14, dpi = 800)
+ggsave(
+  filename = file.path(paths$export_figs, "fig_6_plts_substate_illustration_hm.png"),
+  plot = plts_substate_illustration_hm,
+  device = "png",
+  width = 14,
+  height = 14,
+  dpi = 800
+)
+
+ggsave(
+  filename = file.path(paths$export_figs, "fig_6_plts_substate_illustration_hm.pdf"),
+  plot = plts_substate_illustration_hm,
+  device = "pdf",
+  width = 14,
+  height = 14,
+  dpi = 800
+)
+# 
+# ggsave("fig_6_plts_substate_illustration_hm.tiff", 
+#        plts_substate_illustration_hm, device = "tiff",
+#        width = 14, height = 14, dpi = 800)
+# ggsave("fig_6_plts_substate_illustration_hm.png", 
+#        plts_substate_illustration_hm, device = "png",
+#        width = 14, height = 14, dpi = 800)
+# 
+# 
+# ggsave("fig_6_plts_substate_illustration_hm.pdf", 
+#        plts_substate_illustration_hm, device = "pdf",
+#        width = 14, height = 14, dpi = 800)
   
 ```
 
