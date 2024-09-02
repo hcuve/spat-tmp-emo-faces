@@ -1,5 +1,5 @@
 ---
-title: "au-to-landm_vis"
+title: "Training and visusualisation of AUS to landmarks and delaunay faces"
 output: html_document
 date: "2023-11-22"
 ---
@@ -7,7 +7,6 @@ date: "2023-11-22"
 This code has the alignment process and fits a pls model to map AU to landmarks
 then use this model to predict NMF recreated landmarks based on AUS
 
-Starting data
 ```{r}
 library(tidyverse)
 
@@ -17,12 +16,9 @@ library(geometry)
 # install.packages("geomorph")
 library(geomorph)
 library(ggplot2)
-
-
-
 ```
 
-
+ExportedSets subdirectory changed to au-to-land-align
 ```{r}
 
 dta_AU_landm<- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedSets/df_OF_output_AUs_land_unblind.rds")
@@ -91,228 +87,8 @@ write_csv(tmp_posed_angry_day1_p12,
 
 
 
-okay, this is the code that works appart from the reflection issue, this is just or one video, but I want to tun this for each vide, the id will be sored in a column called filename
 
-```{r}
-# Remove specific objects by name
-rm(landmarks, landmarks_array, gpa_results, aligned_landmarks_array, aligned_landmarks, animation_plot)
-rm(aligned_landmarks, single_frame_landmarks, landmarks, jawline_order, left_eye_order, 
-   right_eye_order, mouth_order, inner_mouth_order, animation_plot, reference_landmarks, 
-   reference_landmarks_matrix, landmarks_array, apply_affine_transformation, sum_squared_diff, 
-   best_fit, transformed_landmarks)
-
-rm(affine_matrix, align_landmarks, aligned_landmarks_matrix,
-   df,df_aligned,gpa_results_by_video,procrustes_results, tmp_first_five_frames,
-   tmp_landmarks1, tmp_landmarks_by_video,
-   tmp_posed_angry_day1_p12_sel, tmp_reference_landmarks, tmp_reference_frame,
-   tmp_reference_landmarks_matrix,tmp_landmark_cols, tmp_landmarks_array, xcol, y_cols,
-   y_landmark_cols,
-   current_frame, current_landmarks, current_landmarks_matrix,
-   landmark_array, landmark_cols, reference_frame, reference_matrix)
-
-rm(n_frames, n_landmarks, num_frames, num_landmarks, x_cols, x_coords, x_landmark_cols,
-   y_coords, affine_transform, align_to_reference, average_landmarks, get_affine_matrix, 
-   normalize,perform_affine_transformation)
-rm(tmp_n_landmarks, df_reshaped, aligned_landmarks_by_video)
-
-write_rds(gpa_results_by_video, "gpa_results_by_video.rds")
-```
-
-
-```{r}
-
-# Assuming 'landmarks' is your dataframe and it's ordered by the 'frame' column
-
-colnames(tmp_posed_angry_day1_p12)
-
-x_landmark_cols<- paste0("x_",paste0(0:67))
-y_landmark_cols<- paste0("y_",paste0(0:67))
-
-
-landmarks <- tmp_posed_angry_day1_p12%>%
-# landmarks%>%
-  select(c(frame, x_landmark_cols, y_landmark_cols)) 
-  
-  
- # Assuming 'landmarks' is your dataframe
-# First, ensure that the landmarks dataframe does not include the 'frame' column
-landmarks <- landmarks[, -which(names(landmarks) == "frame")]
-
-# Now, get the number of landmarks
-num_landmarks <- sum(grepl("^x_", names(landmarks)))  # Count x_ columns
-
-num_frames = max(tmp_posed_angry_day1_p12$frame)
-# Initialize the array with the correct dimensions
-landmarks_array <- array(NA, dim = c(num_landmarks, 2, num_frames))
-
-# Now fill in the array
-for (i in 1:num_frames) {
-  # Extract x and y coordinates for the i-th frame
-  x_coords <- unlist(landmarks[i, grep("^x_", names(landmarks))])
-  y_coords <- unlist(landmarks[i, grep("^y_", names(landmarks))])
-  
-  # Ensure that the number of landmarks matches
-  if (length(x_coords) == num_landmarks && length(y_coords) == num_landmarks) {
-    landmarks_array[, 1, i] <- x_coords
-    landmarks_array[, 2, i] <- y_coords
-  } else {
-    stop("The number of x and y landmarks does not match the expected number.")
-  }
-}
-
-# landmarks_array
-# this file returns separare arrays per frame that contains all 68 landmarks
-
-
-# Perform Generalized Procrustes Analysis (GPA)
-# The function gpagen from the geomorph package requires data in the form of an array
-# where the first dimension represents the number of landmarks, the second dimension is 2 (for x and y coordinates),
-# and the third dimension is the number of specimens (frames in this case).
-
-# ?geomorph::gpagen
-gpa_results <- geomorph::gpagen(landmarks_array)
-
-# Extract the aligned coordinates
-# The coords returned by gpagen are in the form of an array
-# You will want to convert this to a format that can be easily plotted or analyzed, like a data frame
-aligned_landmarks_array <- gpa_results$coords
-
-# Convert the aligned coordinates back into a data frame
-# Create an empty data frame to store the aligned coordinates
-aligned_landmarks <- data.frame(matrix(ncol = num_landmarks * 2, nrow = num_frames))
-names(aligned_landmarks) <- c(paste0("x_", 1:num_landmarks-1), paste0("y_", 1:num_landmarks-1))
-
-# Fill the data frame with the aligned coordinates
-for (i in 1:num_frames) {
-  aligned_landmarks[i, paste0("x_", 1:num_landmarks-1)] <- aligned_landmarks_array[, 1, i]
-  aligned_landmarks[i, paste0("y_", 1:num_landmarks-1)] <- aligned_landmarks_array[, 2, i]
-}
-
-# Add the frame numbers back to the data frame if needed
-aligned_landmarks$frame <- 1:num_frames  # Assuming frames are simply numbered from 1 to num_frames
-
-# The aligned_landmarks data frame now contains the Procrustes aligned coordinates
-aligned_landmarks
-
-# then here, let's see if we can allign this to 
-# a common frame or 0 to 1
-```
-
-using naming conventions
-```{r}
-
-# Remove specific data frames, arrays, and results
-rm(landmarks, num_landmarks, num_frames, landmarks_array, x_coords, y_coords, gpa_results, aligned_landmarks_array, aligned_landmarks)
-
-# Clean up the environment of any other variables starting with 'tmp_', 'sum_', 'rlt_', etc. that were created in this session
-rm(list=ls(pattern="^tmp_"))
-rm(list=ls(pattern="^sum_"))
-rm(list=ls(pattern="^rlt_"))
-# ... include any other prefixes that were used in creating new variables.
-
-# Note that if you used the naming conventions for variables consistently across your workspace,
-# the last three lines will remove all variables with those prefixes, not just the ones created in this snippet.
-# Be cautious with this approach and ensure that you're not removing something you intend to keep.
-
-# Prefix for data: dta_
-# Prefix for temporary files: tmp_
-# Prefix for statistical summaries: sum_
-# Prefix for models (such as lm models): mod_
-# Prefix for custom functions: fn_
-# Prefix for plots and visualization: plt_
-# Prefix for lookup and reference tables: lkp_
-# Prefix for results and analysis: rlt_
-# Prefix for consistency and accuracy checks: chk_
-
-# library(dplyr)
-# library(geomorph)
-
-# Retrieve column names for x and y landmarks
-x_landmark_cols <- paste0("x_", 0:67)
-y_landmark_cols <- paste0("y_", 0:67)
-
-# Select and rename the landmarks dataframe
-dta_landmarks <- tmp_posed_angry_day1_p12 %>%
-  select(c(frame, x_landmark_cols, y_landmark_cols)) 
-
-# Remove the 'frame' column to prepare for analysis
-dta_landmarks <- dta_landmarks[, -which(names(dta_landmarks) == "frame")]
-
-# Calculate the number of landmarks and frames
-sum_num_landmarks <- sum(grepl("^x_", names(dta_landmarks)))
-sum_num_frames <- max(tmp_posed_angry_day1_p12$frame)
-
-# Initialize an array to store landmarks data
-tmp_landmarks_array <- array(NA, dim = c(sum_num_landmarks, 2, sum_num_frames))
-
-# Fill in the landmarks array
-for (i in 1:sum_num_frames) {
-  x_coords <- unlist(dta_landmarks[i, grep("^x_", names(dta_landmarks))])
-  y_coords <- unlist(dta_landmarks[i, grep("^y_", names(dta_landmarks))])
-  
-  if (length(x_coords) == sum_num_landmarks && length(y_coords) == sum_num_landmarks) {
-    tmp_landmarks_array[, 1, i] <- x_coords
-    tmp_landmarks_array[, 2, i] <- y_coords
-  } else {
-    stop("Mismatch in the number of x and y landmarks.")
-  }
-}
-
-# Perform Generalized Procrustes Analysis (GPA)
-rlt_gpa <- geomorph::gpagen(tmp_landmarks_array)
-
-# Extract the aligned coordinates and convert to a dataframe
-tmp_aligned_coords <- rlt_gpa$coords
-dta_aligned_landmarks <- data.frame(matrix(ncol = sum_num_landmarks * 2, nrow = sum_num_frames))
-names(dta_aligned_landmarks) <- c(paste0("x_", 1:sum_num_landmarks-1), paste0("y_", 1:sum_num_landmarks-1))
-
-# Fill the dataframe with the aligned coordinates
-for (i in 1:sum_num_frames) {
-  dta_aligned_landmarks[i, paste0("x_", 1:sum_num_landmarks-1)] <- tmp_aligned_coords[, 1, i]
-  dta_aligned_landmarks[i, paste0("y_", 1:sum_num_landmarks-1)] <- tmp_aligned_coords[, 2, i]
-}
-
-# Re-add the frame numbers to the dataframe
-dta_aligned_landmarks$frame <- 1:sum_num_frames
-
-# Output the aligned landmarks
-
-# aligned_landmarks
-dta_aligned_landmarks
-
-
-# Visualising the procrustes
-
-library(ggplot2)
-
-ggplot(dta_aligned_landmarks, aes(x = x_1, y = y_1)) +
-  geom_point() +
-  theme_minimal() +
-  labs(title = "Aligned Landmarks for Frame 1",
-       x = "X Coordinate",
-       y = "Y Coordinate")
-
-
-dta_aligned_landmarks%>%
-  
-  # subset(frame==130)%>%
-  select(frame, x_landmark_cols, y_landmark_cols) %>%
-  pivot_longer(cols = -frame, names_to = c(".value", "landmark"), names_pattern = "([xy])_(\\d+)") %>%
-  ggplot(aes(x = x, y = y, color = (frame))) +  # Convert frame to a factor for discrete color mapping
-    geom_point() +
-    theme_minimal() +
-    # scale_y_reverse() +
-  # scale_x_reverse() +
-
-    labs(title = "Landmark Visualization", x = "X Coordinate", y = "Y Coordinate", color = "Frame") +
-    coord_fixed()+  # Use coord_fixed to ensure that one unit on the x-axis is the same length as one unit on the y-axis.
-        coord_flip()
-
-
-# lets to thsi for eaxch video and export each transformed rotate landmarks
-```
-
-multiple videos
+multiple videos (this doesn't quite align yet)
 ```{r}
 
 
@@ -546,7 +322,7 @@ maxnormalize <- function(x, ...) {
 
 ```
 
-
+this (up) doesn quite align but we can take the data from here
 ```{r}
 tmp_test<- dta_all_aligned_landmarks_posed_corrected%>%
   # # subset(as.numeric(as.factor(filename)) == 2)%>%
@@ -610,7 +386,8 @@ write_csv(to_allign, "to_allign.csv")
 
 
 ```
-alligne to reference frame
+allign to reference frame
+this is the bit the actually alligns landmarks
 
 ```{r}
 dta_all_aligned_landmarks_posed_corrected
@@ -642,7 +419,6 @@ dta_to_allign<- dta_all_aligned_landmarks_posed_corrected %>%
 library(ggplot2)
 
 # Function for Procrustes Analysis
-
 
 
 ```{r}
@@ -735,16 +511,13 @@ library(data.table)
 
 
 
-# Load the full dataset of video landmarks
-video_landmarks <- read.csv("path_to_your_video_landmarks_dataset.csv")
-
-# Assuming you have a function 'procrustes_analysis' defined as before
-
 # Loop through each unique video (filename)
 unique_videos <- unique(dta_to_allign$filename)
 # video = unique_videos[1]
 
 # Create a progress bar
+
+# set wd to HaloStudy/Data/ExportedSets/ProcAllign/allignedtoneutral"
 total <- length(unique_videos)
 pb <- txtProgressBar(min = 0, max = total, style = 3)
 for (video in unique_videos) {
@@ -798,9 +571,11 @@ all_frames_transformed %>%
   geom_text(aes(label = land_id))+
   scale_y_reverse()
 
+# this is actually alligned now
+
 ```
 
-import the videos back
+import the videos back from the step above (i.e transformed)
 ```{r}
 tmp_file_list <- list.files(pattern = "\\.csv$")
 
@@ -815,14 +590,16 @@ tmp_combined_alligned_to_nt_data <- do.call(rbind, lapply(tmp_file_list, read.cs
 
 # The combined_data data frame now contains all the data from the CSV files
 
-dta_to_allign%>%
-  group_by(filename)%>%
-  # mutate(x_norm = normalize_between_0_and_1(x),
-  #        y_norm = normalize_between_0_and_1(y))%>%
-ggplot( aes(x = x, y = y)) + 
-  geom_point() + 
-  theme_classic()+
-  theme_minimal()
+# this compares data before alligment and after alligning
+# this takes too long
+# dta_to_allign%>%
+#   group_by(filename)%>%
+#   # mutate(x_norm = normalize_between_0_and_1(x),
+#   #        y_norm = normalize_between_0_and_1(y))%>%
+# ggplot( aes(x = x, y = y)) + 
+#   geom_point() + 
+#   theme_classic()+
+#   theme_minimal()
 
 tmp_combined_alligned_to_nt_data%>%
   group_by(filename)%>%
@@ -836,14 +613,27 @@ ggplot( aes(x = x, y = y)) +
   scale_y_reverse()+    theme_linedraw()
 
 
+unique(tmp_combined_alligned_to_nt_data$filename)
+
+
+saveRDS(tmp_combined_alligned_to_nt_data,
+                 file.path(paths$au_to_land, 
+                  "dta_pos_aligned_to_nt.rds"))
+
+```
+
+
 # 
+
+```{r}
 library(gganimate)
+# install.packages("gifski")
+library(gifski)
 
 unique(tmp_combined_alligned_to_nt_data$frame)
 
-
-
-tmp_combined_alligned_to_nt_data %>%
+# can make an animation to see
+test<- tmp_combined_alligned_to_nt_data %>%
   subset(as.numeric(as.factor(filename)) == 2)%>%
 ggplot( aes(x = x, y = y)) + 
   geom_point() + 
@@ -853,7 +643,7 @@ ggplot( aes(x = x, y = y)) +
     transition_time(frame) +  # Animate over the 'frame' variable
     ease_aes('linear')
 
-
+animate(test)
 ```
 
 allign eyes
@@ -977,7 +767,7 @@ ggplot( aes(x = x, y = y)) +
   geom_point() + 
   geom_text(aes(label = land_id))+
   scale_y_reverse()+
-     coord_fixed() +
+     coord_fixed() 
   # theme_linedraw()
     transition_time(frame) +  # Animate over the 'frame' variable
     ease_aes('linear')
@@ -1027,7 +817,7 @@ ggplot( aes(x = x, y = y)) +
     # geom_text(aes(label = land_id))+
 
   scale_y_reverse()+
-    theme_linedraw()+
+    theme_linedraw()
       transition_time(frame) +  # Animate over the 'frame' variable
     ease_aes('linear')
 
@@ -1035,6 +825,11 @@ ggplot( aes(x = x, y = y)) +
 
 
 tmp_eye_align_data_combined
+
+
+saveRDS(tmp_eye_align_data_combined,
+                 file.path(paths$au_to_land, 
+                  "dta_pos_aligned_to_nt_and_eye.rds"))
 
 ```
 
@@ -1065,8 +860,8 @@ dcast(filename + frame ~ land_id,
                    fun.aggregate = mean) # 
 
 
-# normal alligned
-
+# normal aligned
+unique(tmp_eye_align_data_combined$filename)
 tmp_eye_align_data_combined_wide<- tmp_eye_align_data_combined[,c(3:5,1:2)]%>%
   data.table::setDT()%>%
   # Reshape the data
@@ -1212,7 +1007,7 @@ dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs<- dta_eye_align_combine
    group_by(filename,frame_group)%>%
   summarise_if(is.numeric,mean, na.rm = T)
 
-write_rds(dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs, "dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs.rds")
+saveRDS(dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs, "dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs.rds")
 
 
 dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs<-dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm
@@ -1308,14 +1103,24 @@ as.data.frame(mod_pls$coefficients)
 # fit a pls with reconstructed data
 # dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs_10th
 require(pls)
+
+
+saveRDS(dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs, "dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs.rds")
+
+
+saveRDS(dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs_10th,
+          file.path(paths$au_to_land, 
+                    "dta_pos4_au_to_land_pls.rds"))
+
 mod_pls_nmfaus_posed <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
                   data = dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs_10th,
                   ncomp = 17,
                   scale = FALSE,  # Standardize variables
                   validation = "CV")
 
-
-
+saveRDS(mod_pls_nmfaus_posed,
+          file.path(paths$au_to_land, 
+                    "mod_pos_pls_nmfaus_posed.rds"))
 
 
 # make predictions
@@ -1550,6 +1355,10 @@ dta_posed_reconstr_c3 <- reconstruct_au_data_with_zeroed_component(res_k3_H,
 
 dta_posed_reconstr_k3 <- NMF::fitted(
                                      res_k3)
+
+saveRDS(dta_posed_reconstr_k3,
+         file.path(paths$au_to_land, 
+                   "dta_posed_reconstr_k3.rds"))
 
 # View the reconstructed data
 dta_posed_reconstr_c1$comp = 1
@@ -1801,12 +1610,10 @@ posed_pred_expr_land_nmfaus$expression<- dta_posed_reconstr_k3_agg_norm$expressi
 allcomps_pred1_land_nmfaus
 dta_posed_reconstr_k3_agg_norm
 ```
-efficient - use this continue hee 8 aug
 
 
+process and plot delaunay components
 ```{r}
-
-
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -1897,9 +1704,6 @@ plots_normdisp[[2]]
 plots_normdisp[[3]]
 # norm disp introduces certain discrepancies in the x axis (i.e. assimetries)
 
-
-
-
 ```
 
 
@@ -1952,47 +1756,6 @@ process_and_plot_expression <- function(expression_value) {
 }
 
 
-
-# do disp to show differncves etwen expressions
-
-# Function to process and plot data for a given expression
-# process_and_plot_expression <- function(expression_value) {
-#   # Filter data for the specific expression
-#   expression_data <- posed_pred_expr_land %>%
-#     
-#     pivot_longer(cols = c(-frame, -expression), names_to = c(".value", "landmark"), names_pattern = "([xy])_(\\d+)") %>%
-#     arrange(landmark, frame, expression) %>%
-#     group_by(landmark,expression) %>%
-#     mutate(y_diff = abs(diff(y)), x_diff = abs(diff(x))) %>%
-#     mutate(disp = (y_diff + x_diff)/2) %>%
-#     summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
-#     ungroup()%>%
-#     mutate(across(c(disp, y_diff, x_diff), ~ . / max(.), .names = "norm_{col}"))%>%
-#     filter(expression == expression_value)
-# 
-#   # Create Delaunay triangulation
-#   tri_expression <- triang.list(deldir(expression_data$x, expression_data$y))
-# 
-#   # Prepare data for plotting
-#   tri_data <- do.call(rbind, lapply(seq_along(tri_expression), function(x) {
-#     data.frame(
-#       x = tri_expression[[x]]$x,
-#       y = tri_expression[[x]]$y,
-#       expression_fill = mean(expression_data$norm_y_diff[tri_expression[[x]]$ptNum]),
-#       tri_expression = x
-#     )
-#   }))
-# 
-#   # Plot the triangles with ggplot2
-#   ggplot(tri_data, aes(x, 1 - y)) +
-#     geom_polygon(aes(fill = expression_fill, group = tri_expression)) +
-#     geom_point(colour = "white", alpha = 0.1, size = 0.4) +
-#     scale_fill_viridis_c(option = "magma") +
-#     theme_dark() +
-#     theme_void() +
-#     theme(legend.position = "none") +
-#     ggtitle(paste("Delaunay Triangulation for Expression", expression_value))
-# }
 
 
 # Generate plots for each unique expression
@@ -2084,7 +1847,7 @@ library(tidyr)
 library(ggplot2)
 
 # Extract matrices from NMF result
-res_k3_spoken1 <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/res_k3_spoken1.rds")
+# res_k3_spoken1 <- readRDS("~/HaloStudy/Data/res_k3_spoken1.rds")
 res_k3_spoken1_W <- res_k3_spoken1@fit@W
 res_k3_spoken1_H <- res_k3_spoken1@fit@H
 
@@ -2303,11 +2066,7 @@ Expression
 
 predicted_spoken1_landmarks_df
 
-
-
 predicted_spoken1_landmarks_df
-
-
 
 # Function to process and plot data for a given expression
 process_and_plot_expression_spk <- function(expression_value) {
@@ -2471,41 +2230,10 @@ dta_AU_landm_spoken_sel_subs$filename
 
 ```
 
-dta_landmarks
-dta_aligned_landmarks%>%
-  # subset(filename == "cut_spoken_sad_day2_p30")%>%
-   summarise_if(is.numeric, mean, na.rm = T) %>%
-   # pivot_longer(cols = c(-frame,-filename), names_to = c(".value", "landmark"), names_pattern = "([xy])_(\\d+)") %>%
-  pivot_longer(cols = c(-frame), 
-               names_to = c(".value", "landmark"), names_pattern = "([xy])_(\\d+)") %>%
-  # mutate(filename1 = as.numeric(as.factor(filename)))%>%
-  
-  # subset(filename1 == 50) %>%
-    # subset(filename1 == 150) %>%
-
-  ggplot(aes(x,y))+
-  geom_point(alpha = .1)
-  
 
 
-dta_aligned_landmarks%>%
-  # subset(filename == "cut_spoken_sad_day2_p30")%>%
-   summarise_if(is.numeric, mean, na.rm = T) %>%
-   # pivot_longer(cols = c(-frame,-filename), names_to = c(".value", "landmark"), names_pattern = "([xy])_(\\d+)") %>%
-  pivot_longer(cols = c(-frame,-filename), 
-               names_to = c(".value", "landmark"), names_pattern = "([xy])_(\\d+)") %>%
-  # mutate(filename1 = as.numeric(as.factor(filename)))%>%
-  
-  # subset(filename1 == 50) %>%
-    # subset(filename1 == 150) %>%
-
-  ggplot(aes(x,y))+
-  geom_point(alpha = .1)
-
-# Define the function to process each video's landmarks
-rm(dta_video_landmarks)
-
-```{r}
+skip the approach below
+```{r eval=FALSE, include=FALSE}
 fn_align_and_save_landmarks <- function(dta_video_landmarks) {
   
   dta_video_landmarks<- list_of_dta_videos_spk$cut_spoken_angry_day1_p1
@@ -2601,10 +2329,9 @@ list_of_filenames_spk <- lapply(list_of_dta_videos_spk, fn_align_and_save_landma
 
 ```
 
-
-
 # now load all alligned data again
-```{r}
+this bit not working properly - skip
+```{r eval=FALSE, include=FALSE}
 library(dplyr)
 
 # Set the path where the CSV files are saved, and list all CSV files
@@ -2636,22 +2363,6 @@ dta_all_aligned_landmarks_spk%>%
 
 
 
-
-# Function to correct flipped x and y coordinates in a dataframe using vectorized operations
-# correct_flipped_coordinates <- function(df) {
-#   # Identifying the x-columns and y-columns for landmarks
-#   x_landmark_cols <- grep("^x_", names(df), value = TRUE)
-#   y_landmark_cols <- grep("^y_", names(df), value = TRUE)
-#   
-#   # Swap the x and y coordinates
-#   df[, c(x_landmark_cols, y_landmark_cols)] <- df[, c(y_landmark_cols, x_landmark_cols)]
-#   
-#   return(df)
-# }
-
-# Apply the correction to the entire dataframe
-# rm(dta_all_aligned_landmarks_posed_corrected_test)
-# dta_all_aligned_landmarks_spk_corrected <- correct_flipped_coordinates(dta_all_aligned_landmarks_spk)
 
 colnames(dta_all_aligned_landmarks_spk_corrected)
 
@@ -2711,12 +2422,9 @@ dta_AU_landm_spoken_sel_subs
 
 
 ```
-alligne to reference frame
+allign to reference frame
 
 ```{r}
-dta_all_aligned_landmarks_posed_corrected
-
-colnames(dta_all_aligned_landmarks_posed_corrected)
 
 library(data.table)
 
@@ -2907,11 +2615,13 @@ close(pb)
 library(dplyr)
 
 #
-
+all_frames_transformed$filename
 all_frames_transformed %>%
   ggplot(aes(x,y))+
   geom_text(aes(label = land_id))+
   scale_y_reverse()
+
+# this works - it is alligned now
 
 ```
 
@@ -3084,11 +2794,13 @@ tmp_eye_align_data_spk_combined%>%
     group_by(filename)%>%
   mutate(x_norm = normalize_between_0_and_1(x),
          y_norm = normalize_between_0_and_1(y))%>%
-ggplot( aes(x = x_norm, y = y_norm)) + 
+ggplot( aes(x = x, y = y)) + 
   geom_point() + 
 
   # theme_minimal()+
   scale_y_reverse()+    theme_linedraw()
+
+# this is alligned now
 
 ```
     
@@ -3312,10 +3024,6 @@ dta_spk_eye_align_combined_norm_01_wide_AUS_norm_downs_10th%>%
   geom_point()+
   geom_smooth(method = 'lm',se = F)+
     ggpubr::stat_cor()
-
-
-
-
 
 
 colnames(dta_spk_eye_align_combined_norm_01_wide_AUS_norm_downs_10th)
@@ -3751,6 +3459,8 @@ NMF::coefmap(res_k3_spoken1)
 
 ```
 
+
+
 # expressions spoken pls
 
 ```{r}
@@ -3811,9 +3521,10 @@ plot_dell_spoken
 
 
 store pngs for github
+note we used the pls for spoken
 ```{r}
 
-setwd("~Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Github/NewGit/halo_faces2/ggtextimgs")
+# setwd(".../ggtextimgs")
 ggsave("comp1_posed.png", device = "png", plot_dell_posed$posed_c1,
        width = 700,
        height = 700,
@@ -3904,8 +3615,15 @@ saveRDS(plot_dell_posed, "plot_dell_posed.rds")
 saveRDS(plot_dell_spoken, "plot_dell_spoken.rds")
 plot_dell_posed
 plot_dell_spoken
+path
 
-save.image("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/AU-to_landm_vis.RData")
+# "spt_tmp_emo_faces_subm1_ploscb_",
+#                          format(Sys.time(), "%d-%m-%Y_%H-%M-%S"),
+#                          ".RData"
+save.image(paste0(paths$envRdata, 
+                  "spt_tmp_emo_faces_au_to_land_vis_subm1.RData"))
+           
+           
 
 ```
 

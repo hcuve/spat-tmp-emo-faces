@@ -116,6 +116,10 @@ lapply(names(split_data), function(name) {
             row.names = FALSE)
 })
 
+colnames(df_OF_output_AUs_land)
+
+# df_OF_output_AUs_land
+# saveRDS(df_OF_output_AUs_land,"df_OF_output_AUs_land_unblind.rds") # to do link where this rds is exported from
 ```
 
 colnames(split_data$cut_posed_angry_day1_p1.csv)
