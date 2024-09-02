@@ -6,7 +6,7 @@ output: html_document
 ---
 
 
-dependenciesL Facial expression substates analyses.Rmd
+dependencies L Facial expression substates analyses.Rmd
 Figure 6
 
 
