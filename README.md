@@ -3,9 +3,7 @@
 This repository contains the code for processing and modelling associated with the manuscript:
 
 **Cuve, H. C. J., Sowden-Carvalho, S., & Cook, J. L. (2024)**  
-*Spatiotemporal Structure and Substates in Emotional Facial Expressions*.  
-**bioRxiv** pre-print (v1).  
-DOI: [10.1101/2024.09.02.610622](https://doi.org/10.1101/2024.09.02.610622)
+*Spatiotemporal Structure and Substates in Emotional Facial Expressions*. **bioRxiv.** pre-print (v1). DOI: [10.1101/2024.09.02.610622](https://doi.org/10.1101/2024.09.02.610622)
 
 ## Repository Contents
 
