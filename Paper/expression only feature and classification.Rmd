@@ -79,7 +79,107 @@ print(dta_pos_train %>% group_by(expression) %>% summarize(unique_files = n_dist
 cat("\nUnique filenames per expression in test:\n")
 print(dta_pos_test %>% group_by(expression) %>% summarize(unique_files = n_distinct(filename)))
 
+pos_test_files<- unique(dta_pos_test$filename)
+spk_test_files<- unique(dta_spk_test$filename)
+
+pos_test_files
+spk_test_files
+
+saveRDS(pos_test_files, "pos_test_files.rds")
+saveRDS(spk_test_files,"spk_test_files.rds" )
 ```
+
+[1] ./cut_posed_angry_day1_p10.csv
+ [2] ./cut_posed_angry_day1_p12.csv
+ [3] ./cut_posed_angry_day1_p17.csv
+ [4] ./cut_posed_angry_day1_p18.csv
+ [5] ./cut_posed_angry_day1_p28.csv
+ [6] ./cut_posed_angry_day1_p3.csv 
+ [7] ./cut_posed_angry_day1_p33.csv
+ [8] ./cut_posed_angry_day1_p41.csv
+ [9] ./cut_posed_angry_day2_p13.csv
+[10] ./cut_posed_angry_day2_p25.csv
+[11] ./cut_posed_angry_day2_p27.csv
+[12] ./cut_posed_angry_day2_p3.csv 
+[13] ./cut_posed_angry_day2_p31.csv
+[14] ./cut_posed_angry_day2_p32.csv
+[15] ./cut_posed_angry_day2_p5.csv 
+[16] ./cut_posed_happy_day1_p10.csv
+[17] ./cut_posed_happy_day1_p12.csv
+[18] ./cut_posed_happy_day1_p17.csv
+[19] ./cut_posed_happy_day1_p18.csv
+[20] ./cut_posed_happy_day1_p28.csv
+[21] ./cut_posed_happy_day1_p3.csv 
+[22] ./cut_posed_happy_day1_p33.csv
+[23] ./cut_posed_happy_day1_p41.csv
+[24] ./cut_posed_happy_day2_p13.csv
+[25] ./cut_posed_happy_day2_p25.csv
+[26] ./cut_posed_happy_day2_p27.csv
+[27] ./cut_posed_happy_day2_p3.csv 
+[28] ./cut_posed_happy_day2_p31.csv
+[29] ./cut_posed_happy_day2_p32.csv
+[30] ./cut_posed_happy_day2_p5.csv 
+[31] ./cut_posed_sad_day1_p10.csv  
+[32] ./cut_posed_sad_day1_p12.csv  
+[33] ./cut_posed_sad_day1_p17.csv  
+[34] ./cut_posed_sad_day1_p18.csv  
+[35] ./cut_posed_sad_day1_p28.csv  
+[36] ./cut_posed_sad_day1_p3.csv   
+[37] ./cut_posed_sad_day1_p33.csv  
+[38] ./cut_posed_sad_day1_p41.csv  
+[39] ./cut_posed_sad_day2_p13.csv  
+[40] ./cut_posed_sad_day2_p25.csv  
+[41] ./cut_posed_sad_day2_p27.csv  
+[42] ./cut_posed_sad_day2_p3.csv   
+[43] ./cut_posed_sad_day2_p31.csv  
+[44] ./cut_posed_sad_day2_p32.csv  
+[45] ./cut_posed_sad_day2_p5.csv   
+45 Levels: ./cut_posed_angry_day1_p10.csv ...
+ [1] "./cut_spoken_angry_day1_p10.csv"
+ [2] "./cut_spoken_angry_day1_p12.csv"
+ [3] "./cut_spoken_angry_day1_p17.csv"
+ [4] "./cut_spoken_angry_day1_p18.csv"
+ [5] "./cut_spoken_angry_day1_p28.csv"
+ [6] "./cut_spoken_angry_day1_p3.csv" 
+ [7] "./cut_spoken_angry_day1_p33.csv"
+ [8] "./cut_spoken_angry_day1_p41.csv"
+ [9] "./cut_spoken_angry_day2_p13.csv"
+[10] "./cut_spoken_angry_day2_p25.csv"
+[11] "./cut_spoken_angry_day2_p27.csv"
+[12] "./cut_spoken_angry_day2_p3.csv" 
+[13] "./cut_spoken_angry_day2_p31.csv"
+[14] "./cut_spoken_angry_day2_p32.csv"
+[15] "./cut_spoken_angry_day2_p5.csv" 
+[16] "./cut_spoken_happy_day1_p10.csv"
+[17] "./cut_spoken_happy_day1_p12.csv"
+[18] "./cut_spoken_happy_day1_p17.csv"
+[19] "./cut_spoken_happy_day1_p18.csv"
+[20] "./cut_spoken_happy_day1_p28.csv"
+[21] "./cut_spoken_happy_day1_p3.csv" 
+[22] "./cut_spoken_happy_day1_p33.csv"
+[23] "./cut_spoken_happy_day1_p41.csv"
+[24] "./cut_spoken_happy_day2_p13.csv"
+[25] "./cut_spoken_happy_day2_p25.csv"
+[26] "./cut_spoken_happy_day2_p27.csv"
+[27] "./cut_spoken_happy_day2_p3.csv" 
+[28] "./cut_spoken_happy_day2_p31.csv"
+[29] "./cut_spoken_happy_day2_p32.csv"
+[30] "./cut_spoken_happy_day2_p5.csv" 
+[31] "./cut_spoken_sad_day1_p10.csv"  
+[32] "./cut_spoken_sad_day1_p12.csv"  
+[33] "./cut_spoken_sad_day1_p17.csv"  
+[34] "./cut_spoken_sad_day1_p18.csv"  
+[35] "./cut_spoken_sad_day1_p28.csv"  
+[36] "./cut_spoken_sad_day1_p3.csv"   
+[37] "./cut_spoken_sad_day1_p33.csv"  
+[38] "./cut_spoken_sad_day1_p41.csv"  
+[39] "./cut_spoken_sad_day2_p13.csv"  
+[40] "./cut_spoken_sad_day2_p25.csv"  
+[41] "./cut_spoken_sad_day2_p27.csv"  
+[42] "./cut_spoken_sad_day2_p3.csv"   
+[43] "./cut_spoken_sad_day2_p31.csv"  
+[44] "./cut_spoken_sad_day2_p32.csv"  
+[45] "./cut_spoken_sad_day2_p5.csv"  
 
 # Ensure that we do not ask for more test files than available
 ```{r}

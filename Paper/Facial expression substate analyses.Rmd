@@ -9,12 +9,8 @@ output: html_document
 ```{r}
 
 library(dplyr)
-library(tsclust)
-# install.packages("sjstats")
-# install.packages("sjPlot")
-# install.packages("psycho")
-# install.packages("remotes")
-# install.packages("easystats")
+library(dtwclust)
+
 
 
 ```
@@ -27,11 +23,15 @@ maxnorm <- function(x) {
   x / max(abs(x))
 }
 
+
+
 # Define a custom function to perform clustering with tsclust
 perform_tsclust_clustering <- function(data) {
   tsclust_result <- tsclust(data[, c("sp_avg", "comp_delta_avg", "compavg")], k = 3)
   return(tsclust_result@cluster)
 }
+
+
 
 # Apply max-norm normalization and perform tsclust clustering
 unique(df_OF_output_AUsW_unblind_posed_binned3_nona_clust$sp_avg)
@@ -45,6 +45,152 @@ df_with_clusters6 <- df_OF_output_AUsW_unblind_posed_binned3_nona_clust %>%
   ungroup() %>%
   mutate(cluster_across = perform_tsclust_clustering(cur_data()))
 
+
+```
+
+
+
+```{r}
+unique(df_with_clusters6$filename)
+
+library(ggplot2)
+library(dplyr)
+
+# Extract the necessary features for clustering
+tmp_dta <- df_with_clusters6 %>%
+  subset(as.numeric(factor(filename)) == 10)%>%
+  select(sp_avg, comp_delta_avg, compavg)
+unique(tmp_dta$filename)
+
+
+# Function to calculate WSS
+wss <- function(k) {
+  kmeans(tmp_dta[,2:4], centers = k, nstart = 10)$tot.withinss
+}
+
+# Number of clusters to test
+k_values <- 1:10
+wss_values <- sapply(k_values, wss)
+
+# Plot the Elbow Curve
+elbow_plot <- data.frame(k = k_values, WSS = wss_values)
+ggplot(elbow_plot, aes(x = as.factor(k), y = WSS)) +
+  geom_line() +
+  geom_point() +
+  ggtitle("Elbow Method for Optimal Clusters") +
+  xlab("Number of Clusters") +
+  ylab("Total Within-Cluster Sum of Squares")
+  geom_vline(xintercept = 3)
+  
+  
+  
+library(cluster)
+
+# Function to calculate average silhouette width
+avg_silhouette <- function(k) {
+  km <- kmeans(tmp_dta[,2:4], centers = k, nstart = 10)
+  sil <- silhouette(km$cluster, dist(tmp_dta[,2:4]))
+  mean(sil[, 3])
+}
+
+# Calculate silhouette scores
+silhouette_values <- sapply(2:10, avg_silhouette)
+
+# Plot the Silhouette Analysis
+silhouette_plot <- data.frame(k = 2:10, Silhouette = silhouette_values)
+ggplot(silhouette_plot, aes(x = k, y = Silhouette)) +
+  geom_line() +
+  geom_point() +
+  ggtitle("Silhouette Analysis for Optimal Clusters") +
+  xlab("Number of Clusters") +
+  ylab("Average Silhouette Width")+
+  ylim(0,1)
+
+install.packages("TSclust")
+library(dtwclust)
+
+set.seed(123)
+
+
+
+tmp_tsclust_result <- dtwclust::tsclust(tmp_dta[, c("sp_avg", "comp_delta_avg", "compavg")], k = c(2,3,4), args = tsclust_args(cent = list(trace = TRUE)))
+
+
+
+tmp_tsclust_result
+
+sapply(tmp_tsclust_result, cvi, type = "internal")
+
+tmp_tsclust_result2 <- dtwclust::tsclust(tmp_dta[, c("sp_avg", "comp_delta_avg", "compavg")], k = c(2,3,4,5), args = tsclust_args(cent = list(trace = TRUE)))
+
+
+tmp_tsclust_result2[1]
+
+dtwclust::cvi(tmp_tsclust_result2)
+sapply(tmp_tsclust_result2, cvi, type = "internal")
+sapply(df_with_clusters6$cluster_across, cvi, type = "internal")
+
+```
+
+
+
+
+# Load required library
+library(dtwclust)
+
+```{r}
+
+# Set random seed for reproducibility
+set.seed(123)
+
+
+tmp_dta <- df_with_clusters6 %>%
+  subset(as.numeric(factor(subject)) == 10)%>%
+  select(sp_avg, comp_delta_avg, compavg)
+unique(tmp_dta$filename)
+
+# Data: Assuming `tmp_dta` contains the time series data
+# Specify the columns for clustering
+data_to_cluster <- tmp_dta[, c("sp_avg", "comp_delta_avg", "compavg")]
+
+# Range of k values to test
+k_values <- 2:5
+
+# Initialise a list to store results
+cluster_results <- list()
+
+# Perform clustering for each k
+for (k in k_values) {
+  cluster_results[[as.character(k)]] <- tsclust(
+    data_to_cluster,
+    k = k,
+    args = tsclust_args(cent = list(trace = TRUE))
+  )
+}
+
+# Calculate internal validity indices for each k
+cvi_results <- sapply(cluster_results, cvi, type = "internal")
+
+# Convert results to a dataframe for easier manipulation
+cvi_df <- as.data.frame(t(cvi_results))
+cvi_df$k <- k_values
+
+# Visualise validity indices for each k
+library(ggplot2)
+cvi_long <- reshape2::melt(cvi_df, id.vars = "k")
+ggplot(cvi_long, aes(x = k, y = value, colour = variable, group = variable)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Cluster Validity Indices Across k",
+    x = "Number of Clusters (k)",
+    y = "Index Value",
+    colour = "Index"
+  ) +
+  theme_minimal()+
+facet_wrap(~variable, scales = "free_y")
+ 
+```
 # quick check
 
 df_with_clusters6%>%
@@ -58,7 +204,7 @@ df_with_clusters6%>%
   facet_grid(~expression)+
   theme_classic()
 
-```
+
 
 
 # illustration

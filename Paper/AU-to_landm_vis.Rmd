@@ -319,7 +319,7 @@ rotation_matrix <- function(angle) {
 maxnormalize <- function(x, ...) {
     return((x - min(x, ...)) /(max(x, ...) - min(x, ...))) }
 
-
+head(dta_4_plfs)
 ```
 
 this (up) doesn quite align but we can take the data from here
@@ -2131,7 +2131,7 @@ plots_expression_spk[[4]]
 Lets train a specific AU to land model based on spoken expressions
 
 - this below might take some time and needs some debugging
-- just rely on the above where we train the modle on purte AUS
+- just rely on the above where we train the model on pure AUS
 
 
 

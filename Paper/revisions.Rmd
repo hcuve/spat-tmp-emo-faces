@@ -1,0 +1,726 @@
+---
+title: "Untitled"
+author: "Helio"
+date: "2025-03-23"
+output: html_document
+---
+
+is we wanted to create PLFs I think we can use these below dta_pos_aligned_to_nt_and_eye.rds
+
+dta_eye_align_combined_norm_01_wide_AUS
+
+spoken
+
+tmp_eye_align_data_spk_combined_norm_01_wide dta_spk_eye_align_combined_norm_01_wide_AUS
+
+# Sci Rep
+
+Reviewers want to see some perceptual validation of the stimuli as well as the value of the components (e.g. reconstruction). The latter is beyong the scope bu for the former here is what we can do
+
+select a subset of stimuli (or all)
+
+create PLFs
+
+then present and have participants rate happy, anger, sad, and other (to make it difficult), and neutral can be reconstructed from the lower ratings of these.
+
+Analyse whether the ratings differ depending on the conditions intended
+
+a way to get to the second but is to use correlate model predictions with observers
+
+and also use components to classify participants categorizations derived from above
+
+```{r}
+# check the dat that contains landamrks
+dta_eye_align_combined_norm_01_wide_AUS
+range(dta_eye_align_combined_norm_01_wide_AUS$frame)
+range(dta_spk_eye_align_combined_norm_01_wide_AUS$frame)
+
+unique(dta_eye_align_combined_norm_01_wide_AUS$filename)
+dta_eye_align_combined_norm_01_wide_AUS
+
+unique(dta_spk_eye_align_combined_norm_01_wide_AUS$filename)
+
+colnames(dta_eye_align_combined_norm_01_wide_AUS)
+colnames(dta_spk_eye_align_combined_norm_01_wide_AUS)
+
+
+
+```
+
+# combine datasets
+
+```{r}
+require(tidyverse)
+dta_4_plfs<- bind_rows(dta_eye_align_combined_norm_01_wide_AUS,
+          dta_spk_eye_align_combined_norm_01_wide_AUS)
+
+
+unique(dta_eye_align_combined_norm_01_wide_AUS$filename)
+
+dta_4_plfs<- dta_4_plfs %>%
+  # mutate(posed.spoken = if_else(grepl("posed", filename), 
+  #                               "posed", "spoken")) %>%
+   mutate(parts = str_split(filename, "_", simplify = TRUE)) %>%
+  # Create new variables based on the split parts
+  mutate(
+    posed.spoken = parts[, 2],
+    expression   = parts[, 3],
+    day          = parts[, 4],
+    subject            = parts[, 5]
+  )
+
+unique(dta_4_plfs$posed.spoken)
+unique(dta_4_plfs$expression)
+unique(dta_4_plfs$day)
+length(unique(dta_4_plfs$subject))
+
+
+
+head(dta_4_plfs)
+
+```
+
+Now create PLFs start win one example
+
+```{r}
+
+setwd("~/Data/scirep_revisions")
+require(tidyverse)
+require(gganimate)
+unique(dta_4_plfs$filename)
+# cut_spoken_sad_day2_p31
+# cut_posed_angry_day1_p1
+
+colnames(dta_4_plfs)
+
+dta_4_plfs_sel_long
+dta_4_plfs_sel_long<-
+dta_4_plfs %>%
+  select(filename, frame, matches("^(x|y)_\\d+")) %>%
+  pivot_longer(
+    # id_cols = c(filename, frame),
+    cols = matches("^(x|y)_\\d+"),
+    names_to = c(".value", "landmark"),
+    names_pattern = "([xy])_(\\d+)")
+
+
+dta_4_plfs_sel_long<- dta_4_plfs_sel_long%>%
+mutate(time = frame / 25)
+# Assume you have a 'frame' variable in your dataset for the animation timeline.
+# If not, you may need to create one.
+
+# Process each unique filename separately.
+tmp_filenames <- unique(dta_4_plfs_sel_long$filename)
+
+tmp_filenames
+
+dta_4_plfs_sel_long
+
+
+
+dta_4_plfs_sel_long%>%
+  group_by(filename)%>%
+  mutate(time = frame/25)%>%
+  summarise_at(c("frame", "time"), max)%>%
+  ggplot(aes(time))+
+  geom_histogram()
+
+
+
+
+
+for(fn in tmp_filenames) {
+  # Filter the data for the current filename.
+  d_tmp <- dta_4_plfs_sel_long %>% filter(filename == fn)
+  
+  # Calculate duration for this file from the time variable.
+  file_duration <- max(d_tmp$time)
+  cat("Filename:", fn, "- Duration:", file_duration, "\n")
+  
+  # Create the animation plot.
+  p <- ggplot(d_tmp, aes(x = x, y = y)) +
+    geom_point(color = "white", size = 3.5) +
+    scale_y_reverse()+
+    coord_fixed() +
+    theme_void() +
+    theme(
+      plot.background = element_rect(fill = "black", colour = NA),
+      panel.background = element_rect(fill = "black", colour = NA),
+      plot.margin = margin(0, 0, 0, 0)
+    ) +
+    transition_time(time) +
+    labs(title = paste("Filename:", fn, "- Time: {frame_time}s"))
+  
+  # Render the animation as an MP4 with 24 fps.
+  anim <- animate(p, 
+                  width = 1920, 
+                  height = 1080, 
+                  # fps = 24,
+                  duration = file_duration,  # per-file duration
+                  renderer = ffmpeg_renderer(),
+                  bg = "black")
+  
+  # Save the animation.
+  anim_save(paste0(fn, ".mp4"), animation = anim)
+}
+
+
+# just select test with pratice for 
+dta_4_plfs_sel_long$filename
+dta_4_plfs_sel_long_test_prct<- dta_4_plfs_sel_long %>% 
+  filter(filename %in% c(pos_test_files, spk_test_files,
+                         "cut_posed_angry_day1_p1",
+                         "cut_spoken_happy_day1_p43"))
+
+nrow(dta_4_plfs_sel_long)
+nrow(dta_4_plfs_sel_long_test_prct)
+
+colnames(dta_4_plfs_sel_long_test_prct)
+dta_4_plfs_sel_long_test_prct
+
+
+
+
+
+```
+
+```{r}
+
+
+# smooth a bit to avoid inherent jitter
+
+#test one jittery video
+
+
+test1 <- dta_4_plfs_sel_long_test_prct %>%
+  group_by(filename, landmark) %>%
+  arrange(frame) %>%
+  mutate(
+    x_smooth = rollmean(x, k = 2, fill = NA, align = "center"),
+    y_smooth = rollmean(y, k = 2, fill = NA, align = "center")
+  ) %>%
+  # Fill NA values at the beginning
+  mutate(
+    x_smooth = na.locf(x_smooth, na.rm = FALSE),
+    y_smooth = na.locf(y_smooth, na.rm = FALSE)
+  ) %>%
+  # Fill NA values at the end (from last observation backward)
+  mutate(
+    x_smooth = na.locf(x_smooth, fromLast = TRUE, na.rm = FALSE),
+    y_smooth = na.locf(y_smooth, fromLast = TRUE, na.rm = FALSE)
+  )%>%
+  subset(filename == "cut_spoken_angry_day1_p3")
+
+
+#setwd("HaloStudy/Data/scirep_revisions/test_vid/smooth")
+
+
+test1<- test1%>%
+mutate(time = frame / 25)
+
+for(fn in unique(test1$filename)) {
+  # Filter the data for the current filename.
+  d_tmp <- test1 %>% filter(filename == fn)
+  
+  # Calculate duration for this file from the time variable.
+  file_duration <- max(d_tmp$time)
+  cat("Filename:", fn, "- Duration:", file_duration, "\n")
+  
+  # Create the animation plot.
+  p <- ggplot(d_tmp, aes(x = x_smooth, y = y_smooth)) +
+    geom_point(color = "white", size = 3.5) +
+    scale_y_reverse()+
+    coord_fixed() +
+    theme_void() +
+    theme(
+      plot.background = element_rect(fill = "black", colour = NA),
+      panel.background = element_rect(fill = "black", colour = NA),
+      plot.margin = margin(0, 0, 0, 0)
+    ) +
+    transition_time(time) +
+    labs(title = paste("Filename:", fn, "- Time: {frame_time}s"))
+  
+  # Render the animation as an MP4 with 24 fps.
+  anim <- animate(p, 
+                  width = 1920, 
+                  height = 1080, 
+                  # fps = 24,
+                  duration = file_duration,  # per-file duration
+                  renderer = ffmpeg_renderer(),
+                  bg = "black")
+  
+  # Save the animation.
+  anim_save(paste0("test_smooth_cut_spoken_angry_day1_p3_2f", ".mp4"), animation = anim)
+}
+
+# this suggests 2 frames smoothiong is enough
+library(dplyr)
+library(zoo)
+
+dta_4_plfs_sel_long_test_prct <- dta_4_plfs_sel_long_test_prct %>%
+  group_by(filename, landmark) %>%
+  arrange(frame) %>%
+  mutate(
+    x_smooth = rollmean(x, k = 2, fill = NA, align = "center"),
+    y_smooth = rollmean(y, k = 2, fill = NA, align = "center")
+  ) %>%
+  # Fill NA values at the beginning
+  mutate(
+    x_smooth = na.locf(x_smooth, na.rm = FALSE),
+    y_smooth = na.locf(y_smooth, na.rm = FALSE)
+  ) %>%
+  # Fill NA values at the end (from last observation backward)
+  mutate(
+    x_smooth = na.locf(x_smooth, fromLast = TRUE, na.rm = FALSE),
+    y_smooth = na.locf(y_smooth, fromLast = TRUE, na.rm = FALSE)
+  )
+
+
+#unique(unique(dta_4_plfs_sel_long_test_prct$filename))
+
+
+tmp_filenames <- unique(dta_4_plfs_sel_long_test_prct$filename)
+
+#setwd("HaloStudy/Data/scirep_revisions/test_vid/smooth")
+
+
+
+dta_4_plfs_sel_long_test_prct<- dta_4_plfs_sel_long_test_prct%>%
+mutate(time = frame / 25)
+
+for(fn in tmp_filenames) {
+  # Filter the data for the current filename.
+  d_tmp <- dta_4_plfs_sel_long_test_prct %>% filter(filename == fn)
+  
+  # Calculate duration for this file from the time variable.
+  file_duration <- max(d_tmp$time)
+  cat("Filename:", fn, "- Duration:", file_duration, "\n")
+  
+  # Create the animation plot.
+  p <- ggplot(d_tmp, aes(x = x_smooth, y = y_smooth)) +
+    geom_point(color = "white", size = 3.5) +
+    scale_y_reverse()+
+    coord_fixed() +
+    theme_void() +
+    theme(
+      plot.background = element_rect(fill = "black", colour = NA),
+      panel.background = element_rect(fill = "black", colour = NA),
+      plot.margin = margin(0, 0, 0, 0)
+    ) +
+    transition_time(time) +
+    labs(title = paste("Filename:", fn, "- Time: {frame_time}s"))
+  
+  # Render the animation as an MP4 with 24 fps.
+  anim <- animate(p, 
+                  width = 1920, 
+                  height = 1080, 
+                  # fps = 24,
+                  duration = file_duration,  # per-file duration
+                  renderer = ffmpeg_renderer(),
+                  bg = "black")
+  
+  # Save the animation.
+  anim_save(paste0(fn, ".mp4"), animation = anim)
+}
+
+
+
+```
+
+OKAY these are too may stimuli for people to rate
+
+so either we select a random set, or just the test set in classification
+
+saveRDS(pos_test_files, "pos_test_files.rds") saveRDS(spk_test_files,"spk_test_files.rds" )
+
+saveRDS(pos_train_files, "pos_train_files.rds") saveRDS(spk_train_files,"spk_train_files.rds" ) <!--#  -->
+
+```{r}
+paths$envRdata
+pos_test_files <- readRDS("~/pos_test_files.rds")
+spk_test_files <- readRDS("~/spk_test_files.rds")
+
+
+pos_train_files <- readRDS("~/pos_train_files.rds")
+spk_train_files <- readRDS("~/spk_train_files.rds")
+
+pos_test_files
+spk_test_files
+
+pos_test_files
+dta_4_plfs$filename
+
+pos_test_files<- str_remove(pos_test_files, "./")
+pos_test_files<- str_remove(pos_test_files, ".csv")
+
+pos_test_files
+
+
+spk_test_files<- str_remove(spk_test_files, "./")
+spk_test_files<- str_remove(spk_test_files, ".csv")
+
+# train
+pos_train_files<- str_remove(pos_train_files, "./")
+pos_train_files<- str_remove(pos_train_files, ".csv")
+
+spk_train_files<- str_remove(spk_train_files, "./")
+spk_train_files<- str_remove(spk_train_files, ".csv")
+
+spk_test_files
+
+spk_train_files
+dta_4_plfs$filename
+
+dta_4_plfs_test_set<- dta_4_plfs %>% 
+  filter(filename %in% c(pos_test_files, spk_test_files,
+                         "cut_posed_angry_day1_p1",
+                         "cut_spoken_happy_day1_p43"))
+
+
+dta_4_plfs_test_set_agg<-dta_4_plfs_test_set%>%
+  group_by(filename, posed.spoken, expression, day, subject)%>%
+  summarise_at(c("frame"), max)
+
+
+dta_4_plfs_test_set_agg$filename_mp4<- paste0(dta_4_plfs_test_set_agg$filename, ".mp4")
+
+
+setwd("~/scirep_revisions")
+
+dta_4_plfs_test_set_agg$posed.spoken_1_2<- if_else(dta_4_plfs_test_set_agg$posed.spoken == "posed",1,2)
+
+write_csv(dta_4_plfs_test_set_agg, "dta_4_plfs_test_set_agg.csv")
+
+
+library(readr)
+dta_4_plfs_test_set_stim <- read_csv("dta_4_plfs_test_set_stim.csv")
+
+# copy stim to a foler called test_set videos
+
+
+
+
+# Extract the list of video filenames from the dataframe
+tmp_vid_list <- unique(dta_4_plfs_test_set_stim$filename_mp4)
+
+na.exclude(tmp_vid_list)
+
+tmp_vid_list<- tmp_vid_list[2:93]
+
+# Define the destination directory
+dest_dir <- "test_vid"
+
+# Create the destination directory if it doesn't exist
+if (!dir.exists(dest_dir)) {
+  dir.create(dest_dir)
+}
+
+# Copy the files from the working directory to the destination folder
+file.copy(from = tmp_vid_list, to = dest_dir)
+
+```
+
+load behavioural data
+
+```{r}
+
+library(readr)
+dta_scirep_grl <- read_csv("data_exp_220644-v4_task-62d6.csv")
+
+
+library(readr)
+dta_scirep_grl_h <- read_csv("data-task-62d6_H.csv")
+
+dta_scirep_grll<- dta_scirep_grl%>%
+  janitor::clean_names()%>%
+  bind_rows(dta_scirep_grl_h%>%janitor::clean_names())
+
+colnames(dta_scirep_grll)
+
+dta_scirep_grll
+dta_scirep_grll1<- dta_scirep_grll%>%
+  select(participant_device_type,
+         participant_public_id,
+         participant_private_id,
+          starts_with("spreadsheet"),
+         component_name,
+         object_name,
+         response,
+         
+         )%>%
+subset(grepl("Trial",spreadsheet_display))%>%
+subset(grepl("Slider",component_name))%>%
+  subset(!is.na(response))%>%
+  mutate(response = as.numeric(response))
+
+dta_scirep_grll1%>%
+  ggplot(aes(spreadsheet_expression, response, 
+             colour  = object_name,
+             shape = object_name,
+             group = object_name))+
+  #geom_point(aes(group = object_name), position = position_dodge(1))+
+  facet_grid(~spreadsheet_posed_spoken)+
+  stat_summary(geom = "pointrange",position = position_dodge(1))+
+  facet_grid(~participant_private_id)
+
+
+dta_scirep_grll1
+
+dta_scirep_grll1$filename<- dta_scirep_grll1$spreadsheet_filename
+
+
+#  dta_pos_cfmts_4_pca_test <- readRDS("~//Processeddata/dta_pos_cfmts_4_pca_test.rds")
+# > dta_spoken_cfmts_4_pca_test <- readRDS("~Processeddata/dta_spoken_cfmts_4_pca_test.rds")
+
+dta_scirep_grll1$spreadsheet_filename
+unique(dta_pos_cfmts_4_pca_test$filename)
+unique(dta_spoken_cfmts_4_pca_test$filename)
+
+dta_pos_cfmts_4_pca_test
+dta_spoken_cfmts_4_pca_test
+
+dta_rf_test_pos_spk<- bind_rows(dta_pos_cfmts_4_pca_test,
+          dta_spoken_cfmts_4_pca_test)
+
+dta_rf_test_pos_spk$filename<- str_remove(dta_rf_test_pos_spk$filename,
+                                          "./")
+
+dta_rf_test_pos_spk$filename<- str_remove(dta_rf_test_pos_spk$filename,".csv")
+
+setdiff(dta_rf_test_pos_spk$filename,dta_scirep_grll1$spreadsheet_filename)
+
+intersect(dta_rf_test_pos_spk$filename,dta_scirep_grll1$spreadsheet_filename)
+
+
+colnames(dta_rf_test_pos_spk)
+
+dta_rf_test_pos_spk[,c(1:5,120:126)]
+
+dta_scirep_grll1
+
+
+
+
+```
+
+now create categorical ratings
+
+```{r}
+dta_scirep_grll1
+
+names(dta_scirep_grll1)<- str_remove(colnames(dta_scirep_grll1), "spreadsheet_")
+
+colnames(dta_scirep_grll1)
+
+# Specify the identifier columns – these are all columns you do not wish to pivot.
+id_vars <- c("participant_device_type", "participant_public_id", "participant_private_id", 
+             "spreadsheet", "display", "filename", 
+             "posed_spoken", "day", "subject", "expression",
+             "frame", "filename_mp4", "posed_spoken_1_2", 
+             "component_name", "object_name")
+
+
+dta_scirep_grll1
+# Pivot the data: each unique spreadsheet_expression becomes a new column
+dta_scirep_grll1$filename
+colnames(dta_scirep_grll1)
+dta_scirep_grll1<- dta_scirep_grll1[,c(1:16)]
+
+dta_scirep_grll1_wd <- dta_scirep_grll1 %>%
+  pivot_wider(
+    #id_cols = all_of(id_vars),
+    names_from = object_name,
+    values_from = response
+  )
+
+dta_scirep_grll1_wd
+
+# Create a new column 'max_expression' containing the expression with the highest response
+
+selected_cols<- c("happy_slider", "angry_slider", "sad_slider", "other_emotion")
+
+dta_scirep_grll1_wd <- dta_scirep_grll1_wd %>%
+  rowwise() %>%
+  mutate(max_expression_resp = {
+    values <- c_across(all_of(selected_cols))
+    selected_cols[which.max(values)]
+  }) %>%
+  ungroup()
+
+dta_scirep_grll1_wd$max_expression_resp
+
+#aggregated across subjects
+colnames(dta_scirep_grll1_wd)
+unique(dta_scirep_grll1_wd$component_name)
+
+dta_scirep_grll1_wd_by_vid<-  dta_scirep_grll1_wd%>%
+  group_by(display,
+  filename, posed_spoken,expression,day,subject,
+  filename_mp4, posed_spoken_1_2)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  ungroup()
+
+#create emotion catgeory by video
+colnames(dta_scirep_grll1_wd_by_vid)
+
+dta_scirep_grll1_wd_by_vid <- dta_scirep_grll1_wd_by_vid %>%
+  rowwise() %>%
+  mutate(max_expression_resp = {
+    values <- c_across(all_of(selected_cols))
+    selected_cols[which.max(values)]
+  }) %>%
+  ungroup()
+
+dta_scirep_grll1_wd_by_vid$max_expression_resp
+
+
+dta_rf_test_pos_spk$prediction
+dta_scirep_grll1_wd
+
+
+dta_rf_test_pos_spk$subject
+dta_scirep_grll1_wd$subject
+
+dta_rf_test_pos_spk_w_subj<- left_join(dta_scirep_grll1_wd, dta_rf_test_pos_spk,
+                                        by = c("filename", "expression"))
+
+dta_scirep_grll1_wd_by_vid$max_expression_resp
+
+dta_rf_test_pos_spk$prediction
+
+dta_scirep_grll1_wd_by_vid$expression
+dta_rf_test_pos_spk$expression
+dta_scirep_grll1_wd_by_vid$subject
+dta_rf_test_pos_spk$subject
+
+dta_rf_test_pos_spk_by_vid<- left_join(dta_scirep_grll1_wd_by_vid, dta_rf_test_pos_spk, 
+                                       by = c("filename", "expression"))
+
+sub
+# keep just emotion name
+dta_rf_test_pos_spk_by_vid$max_expression_resp2<- sub("_.*", "",  dta_rf_test_pos_spk_by_vid$max_expression_resp)
+
+
+dta_rf_test_pos_spk_w_subj$max_expression_resp2 <- sub("_.*", "",  dta_rf_test_pos_spk_w_subj$max_expression_resp)
+
+# check correspondence
+library(caret)
+dta_rf_test_pos_spk_by_vid$prediction<- factor(dta_rf_test_pos_spk_by_vid$prediction)
+
+dta_rf_test_pos_spk_by_vid$max_expression_resp2<- factor(dta_rf_test_pos_spk_by_vid$max_expression_resp2)
+
+
+dta_rf_test_pos_spk_w_subj$max_expression_resp2<- factor(dta_rf_test_pos_spk_w_subj$max_expression_resp2)
+
+
+
+dta_rf_test_pos_spk_w_subj$prediction<- factor(dta_rf_test_pos_spk_w_subj$max_expression_resp2)
+
+dta_rf_test_pos_spk_by_vid$prediction
+options(scipen = 999)
+
+chisq.test(dta_rf_test_pos_spk_by_vid$prediction,
+           dta_rf_test_pos_spk_by_vid$max_expression_resp2)
+
+chisq.test(dta_rf_test_pos_spk_w_subj$prediction,
+           dta_rf_test_pos_spk_w_subj$max_expression_resp)
+
+
+confusionMatrix(dta_rf_test_pos_spk_by_vid$prediction, 
+                dta_rf_test_pos_spk_by_vid$max_expression_resp2)
+
+confusionMatrix(dta_rf_test_pos_spk_w_subj$prediction, 
+                dta_rf_test_pos_spk_w_subj$max_expression_resp2)
+
+
+```
+
+Now can we train the model in one participant and test it on another
+
+similarly, can we train it in some data and valite on another within each ppt
+
+lets start with aggregated data and just train with leave one out
+
+```{r}
+dta_rf_test_pos_spk_by_vid
+
+?trainControl()
+# predict participants ratings from spatiotemp comp data and LOO
+mod_rf_spk_mts_train <- train(max_expression_resp2 ~ comp1_scale + comp2_scale + comp3_scale,
+                data = dta_rf_test_pos_spk_by_vid,
+                method = "rf",
+                trControl = trainControl(method = "oob"),
+
+                ntree = 500) # tunig 
+
+mod_emoperc_nmf<- train(max_expression_resp2 ~ comp1_scale + comp2_scale + comp3_scale,
+                              data = dta_rf_test_pos_spk_by_vid,
+                              method = "rf",
+                              trControl = trainControl(method = "LOOCV"),
+                              ntree = 500)
+
+summary(mod_emoperc_nmf)
+
+mod_emoperc_nmf$results
+
+confusionMatrix(data = mod_emoperc_nmf$pred$pred, 
+                reference = mod_emoperc_nmf$pred$obs)
+
+unique(dta_rf_test_pos_spk_w_subj$participant_private_id)
+# 13017672 (actual ppt)
+#13017685 = H
+
+mod_emoperc_nmf2<- train(max_expression_resp2 ~ comp1_scale + comp2_scale + comp3_scale,
+                              data = dta_rf_test_pos_spk_w_subj%>%
+                           subset(participant_private_id == "13017672"),
+                              method = "rf",
+                              trControl = trainControl(method = "LOOCV"),
+                              ntree = 500)
+
+summary(mod_emoperc_nmf)
+
+mod_emoperc_nmf2$results
+
+confusionMatrix(data = mod_emoperc_nmf2$pred$pred, 
+                reference = mod_emoperc_nmf2$pred$obs)
+
+
+
+```
+
+tmp1\<-factor(predict(mod_emoperc_nmf2, dta_rf_test_pos_spk_w_subj%\>% subset(participant_private_id != "13017672")))
+
+tmp2\<-dta_rf_test_pos_spk_w_subj%\>% subset(participant_private_id != "13017672")
+
+tmp2$tmp1<- tmp1
+tmp3<- tmp2%>%subset(tmp1!= "other")
+confusionMatrix(data = factor(tmp3$tmp1), reference = factor(tmp3\$max_expression_resp2))
+
+```{r}
+
+
+# Save all specified objects to a file called "project_objects.RData"
+save(
+  dta_4_plfs,
+  dta_4_plfs_sel_long,
+  dta_4_plfs_sel_long_test_prct,
+  pos_test_files,
+  spk_test_files,      # Only include once if there's a duplicate name
+  pos_train_files,
+  spk_train_files,     # Assuming you meant spk_train_files instead of a repeated spk_test_files
+  dta_4_plfs_test_set,
+  dta_4_plfs_test_set_agg,
+  dta_4_plfs_test_set_stim,
+  dta_scirep_grll,
+  dta_scirep_grll1,
+  dta_rf_test_pos_spk,
+  dta_scirep_grll1_wd,
+  dta_scirep_grll1_wd_by_vid,
+  dta_rf_test_pos_spk_w_subj,
+  dta_rf_test_pos_spk_by_vid,
+  mod_emoperc_nmf,
+  mod_emoperc_nmf2,
+  file = "stim_valid_scirep.RData"
+)
+
+```

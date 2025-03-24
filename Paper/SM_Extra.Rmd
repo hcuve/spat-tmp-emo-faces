@@ -5,10 +5,10 @@ date: "2024-08-23"
 output: html_document
 ---
 
-
 SM Plots
 
 Fig S1
+
 ```{r}
 plots_SM$posed_fit_vs_rand <- plot(res_find_k_1,estim_posed_random_2_tbs_5)+
   geom_vline(xintercept = 3)
@@ -62,6 +62,7 @@ plots_SM$posed_fit_vs_rand1
 ```
 
 Fig S2-S3
+
 ```{r}
 
 
@@ -76,7 +77,6 @@ patchwork::wrap_elements(NMF::consensusmap(res_find_k_spk_subs))
  
 
 ```
-
 
 table S 1 and 2
 
@@ -94,7 +94,8 @@ write.csv(con_mat_pos_bycl_df, "con_mat_pos_bycl_df.csv")
 
 ```
 
-Fig S 4  
+Fig S 4
+
 ```{r}
 plots_SM$spk_fit_vs_rand1<- plots_SM$spk_fit_vs_rand$data %>%
     mutate(Data = ifelse(Data == "x", "original", "simulated (permuted)"))%>%
@@ -138,7 +139,9 @@ ggsave("SM_Spoken_fit_valid_300dpi.png",
 
 plots_SM$spk_fit_vs_rand1
 ```
+
 fig s5-s6
+
 ```{r}
    
 # consensus plots save manually at 1200 by 1200 tiff
@@ -165,5 +168,381 @@ spoken_test_set_res_mts_no_neutr
 con_mat_spk_bycl_df
 write.csv(con_mat_spk_bycl_df, "con_mat_spk_bycl_df.csv")
 
+
+```
+
+Related to response to reviewers March 2025
+
+move joint NMF here
+
+here we show that the components are similar
+
+```{r}
+# single run and single numeric seed for reproducibility
+
+setwd(paths$export_data)
+
+dta_expr_only_4nmf<- readRDS("dta_expr_only_4nmf.rds")
+
+require(tidyverse)
+require(NMF)
+
+dta_expr_spk_4nmf <- bind_rows(dta_expr_only_4nmf,
+          dta_spk_4nmf)
+max(dta_expr_only_4nmf$bin_frame)
+max(dta_spk_4nmf$bin_frame)
+
+dta_expr_only_4nmf
+
+colnames(dta_expr_spk_4nmf)
+
+sm<-list()
+
+sm$joint_nmf <- NMF::nmf(dta_expr_spk_4nmf[,6:22], 
+                   r = 3, 
+                  nrun = 200, 
+                  seed=123456,
+                 .options = list( 'v')) #
+
+
+dta_spk_4nmf.rds
+
+
+sm$joint_nmf
+# NMF::basismap(sm$joint_nmf) #too long
+
+?NMF::coefmap
+
+NMF::coefmap(sm$joint_nmf, Rowv = F)
+NMF::coefmap(mod_rslt_nmfspk,Rowv = F)
+NMF::coefmap(mod_rslt_nmfposed, Rowv = F)
+
+
+paper_plots$spoken_NMF_hm
+
+
+
+
+
+
+
+```
+
+```{r}
+maxnormalize <- function(x, ...) {
+    return((x - min(x, ...)) /(max(x, ...) - min(x, ...))) }
+
+
+as.data.frame(sm$joint_nmf@fit@H) %>%
+  mutate(component = c(1,2,3)) %>%
+  gather(AU, coef, -component)%>%
+  group_by(as.factor(component))%>%
+  mutate(
+    # max_comp = max(coef),
+         coef = maxnormalize(coef),
+         # AU = substring(AU,8,40),
+         AU_code = substring(AU,4,5)
+         )%>%
+  arrange(AU_code)%>%
+  ggplot(aes(as.factor(component),AU, fill = coef))+
+  geom_tile()+
+  theme_classic()+
+  # scale_fill_viridis_()
+   # scale_fill_()+#)+
+   scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  xlab("K")+
+  # p$graphstyle_int +
+guides(fill=guide_colorbar(ticks.colour = NA))+
+  ggtitle("joint NMF")
+
+# POSED
+as.data.frame(mod_rslt_nmfposed@fit@H) %>%
+  mutate(component = c(1,2,3)) %>%
+  gather(AU, coef, -component)%>%
+  group_by(as.factor(component))%>%
+  mutate(
+    # max_comp = max(coef),
+         coef = maxnormalize(coef),
+         # AU = substring(AU,8,40),
+         AU_code = substring(AU,4,5)
+         )%>%
+  arrange(AU_code)%>%
+  ggplot(aes(as.factor(component),AU, fill = coef))+
+  geom_tile()+
+  theme_classic()+
+  # scale_fill_viridis_()
+   # scale_fill_()+#)+
+   scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  xlab("K")+
+  # p$graphstyle_int +
+guides(fill=guide_colorbar(ticks.colour = NA))+
+  ggtitle("just posed nmf")
+
+# SPOKEN
+as.data.frame(mod_rslt_nmfspk@fit@H) %>%
+  mutate(component = c(2,1,3)) %>%
+  gather(AU, coef, -component)%>%
+  group_by(as.factor(component))%>%
+  mutate(
+    # max_comp = max(coef),
+         coef = maxnormalize(coef),
+         # AU = substring(AU,8,40),
+         AU_code = substring(AU,4,5)
+         )%>%
+  arrange(AU_code)%>%
+  ggplot(aes(as.factor(component),AU, fill = coef))+
+  geom_tile()+
+  theme_classic()+
+  # scale_fill_viridis_()
+   # scale_fill_()+#)+
+   scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  xlab("K")+
+  # p$graphstyle_int +
+guides(fill=guide_colorbar(ticks.colour = NA))+
+    ggtitle("just spoken nmf")
+
+
+```
+
+we can see here that the joint NMF capture mostly similar patterns, effectively with three components, where siply component the full one just combines aspects of the otehr two
+
+Now we will plot timeseries from joint split into posed and spoken and compare this to NMF fitted separately on posed and spoken
+
+```{r}
+
+# first store components
+dta_expr_spk_4nmf$comp1_k3<- sm$joint_nm@fit@W[,1]
+dta_expr_spk_4nmf$comp2_k3<- sm$joint_nm@fit@W[,2]
+dta_expr_spk_4nmf$comp3_k3<- sm$joint_nm@fit@W[,3]
+
+unique(dta_expr_spk_4nmf$filename)
+# now plot
+
+colnames(dta_expr_spk_4nmf)
+
+# create posed vs spoken idicator variable
+dta_expr_spk_4nmf$posed.spoken <- sapply(strsplit(dta_expr_spk_4nmf$filename, "_"), 
+                                         function(x) x[2])
+unique(dta_expr_spk_4nmf$posed.spoken)
+
+# plot
+  dta_expr_spk_4nmf[,c(1:5,23:26)]%>%
+  gather(component, coef,-bin_frame, -subject, -expression,-filename,-test.day, -posed.spoken)%>%
+  # subset(expression!= "neutral")%>%
+    # mutate(component = substring(component,4,8))%>%
+  
+  group_by(posed.spoken, component, bin_frame)%>%
+
+  summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+    group_by(posed.spoken, component)%>%
+  
+  mutate(
+    # coef_max = max(coef),
+         coef = maxnormalize(coef)) %>%
+  # ggplot(aes(Dataset, coef , color = Dataset, fill = Dataset))+
+  ggplot(aes(bin_frame, coef, color = component))+
+  geom_smooth(aes(linetype = component))+
+  # geom_smooth(aes(group = subject), se = F)+
+  # stat_summary(aes(group = subject, color = component), geom = "smooth")+
+  # facet_grid(~expression )+
+  theme_classic()+
+   xlab("time bin")+
+  # p$graphstyle_int+
+  scale_color_brewer(palette = "Dark2")+
+   # scale_color_viridis_d(option = "magma")+
+    scale_x_continuous(breaks=c(0,50,100), limits = c(0, 100))+
+    # scale_y_continuous(breaks=c(0,.5,1), limits = c(0, 1))+
+  theme(panel.spacing.x = unit(1.5, "lines"))+
+  theme(legend.position = "top")+
+    facet_grid(~posed.spoken)
+  
+  
+
+# 
+  dta_expr_spk_4nmf$posed.spoken <- sapply(strsplit(dta_expr_spk_4nmf$filename, "_"), 
+                                         function(x) x[2])
+unique(dta_expr_spk_4nmf$posed.spoken)
+
+# plot
+  dta_expr_spk_4nmf[,c(1:5,23:26)]%>%
+  gather(component, coef,-bin_frame, -subject, -expression,-filename,-test.day, -posed.spoken)%>%
+  # subset(expression!= "neutral")%>%
+    # mutate(component = substring(component,4,8))%>%
+  
+  group_by(posed.spoken, component, bin_frame, expression)%>%
+
+  summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+    subset(expression!= "neutral")%>%
+    group_by(posed.spoken, component)%>%
+  
+  mutate(
+    # coef_max = max(coef),
+         coef = maxnormalize(coef)) %>%
+  # ggplot(aes(Dataset, coef , color = Dataset, fill = Dataset))+
+  ggplot(aes(bin_frame, coef, color = component))+
+  geom_smooth(aes(linetype = component))+
+  # geom_smooth(aes(group = subject), se = F)+
+  # stat_summary(aes(group = subject, color = component), geom = "smooth")+
+  # facet_grid(~expression )+
+  theme_classic()+
+   xlab("time bin")+
+  # p$graphstyle_int+
+  scale_color_brewer(palette = "Dark2")+
+   # scale_color_viridis_d(option = "magma")+
+    scale_x_continuous(breaks=c(0,50,100), limits = c(0, 100))+
+    # scale_y_continuous(breaks=c(0,.5,1), limits = c(0, 1))+
+  theme(panel.spacing.x = unit(1.5, "lines"))+
+  theme(legend.position = "top")+
+    facet_grid(posed.spoken~ expression)
+  
+  
+  
+#   
+#   paper_plots$posed_comp_ts
+# paper_plots$posed_comp_ts_hm
+
+
+
+
+
+```
+
+The joint NMF is overall similar to the separate NMFs
+
+paper_plots\$spoken_ts_across_exp
+
+# heatmap ts
+
+```{r}
+
+  dta_expr_spk_4nmf[,c(1:5,23:26)]%>%
+  gather(component, coef,-bin_frame, -subject, -expression,-filename,-test.day, -posed.spoken)%>%
+  subset(expression!= "neutral")%>%
+    mutate(expression = factor(expression, levels = c('angry', 'happy', 'sad')))%>%
+
+  group_by(posed.spoken,component, bin_frame)%>%
+
+  summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+     group_by(posed.spoken,component)%>%
+     mutate(coef_max = max(coef),
+         coef = maxnormalize(coef)) %>%
+  # ggplot(aes(Dataset, coef , color = Dataset, fill = Dataset))+
+  ggplot(aes(bin_frame, component, fill= coef))+
+  geom_tile()+
+  xlab("time bin")+
+      scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  # scale_fill_viridis_c(option = "magma")+
+  # geom_smooth(se = F)+
+  # facet_grid(~expression)+
+  theme_classic()+
+  # p$graphstyle_int+
+  guides(fill=guide_colorbar(ticks.colour = NA))+
+  # theme(panel.spacing = unit(1, "cm"))+
+    scale_x_continuous(breaks=c(0,50,100), limits = c(0, 100))+
+  theme(panel.spacing.x = unit(1.5, "lines"))+
+    facet_grid(~posed.spoken)
+  
+  
+  
+# by expression
+  
+  
+  
+sm$plt_joint_nmf_ts_hm_by_exp <-
+   dta_expr_spk_4nmf[,c(1:5,23:26)]%>%
+  gather(component, coef,-bin_frame, -subject, -expression,-filename,-test.day, -posed.spoken)%>%
+  subset(expression!= "neutral")%>%
+    mutate(expression = factor(expression, levels = c('angry', 'happy', 'sad')))%>%
+
+  group_by(posed.spoken,component, bin_frame,expression)%>%
+
+  summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+     group_by(posed.spoken,expression)%>%
+     mutate(coef_max = max(coef),
+         coef = maxnormalize(coef)) %>%
+  # ggplot(aes(Dataset, coef , color = Dataset, fill = Dataset))+
+  ggplot(aes(bin_frame, component, fill= coef))+
+  geom_tile()+
+  xlab("time bin")+
+      scale_fill_viridis_c(option = "magma", breaks=c(0,.5,1),
+                       limits =c(0,1))+#)+
+  # scale_fill_viridis_c(option = "magma")+
+  # geom_smooth(se = F)+
+  # facet_grid(~expression)+
+  theme_classic()+
+  # p$graphstyle_int+
+  guides(fill=guide_colorbar(ticks.colour = NA))+
+  # theme(panel.spacing = unit(1, "cm"))+
+    scale_x_continuous(breaks=c(0,50,100), limits = c(0, 100))+
+  theme(panel.spacing.x = unit(1.5, "lines"))+
+    facet_grid(posed.spoken~expression)
+   
+   sm$plt_joint_nmf_ts_hm_by_exp
+   
+   # require(patchwork)
+   chool_talk$ts_hm/
+   paper_plots$spoken_NMF_ts_hm
+  
+
+```
+
+```{r}
+
+# no data for p9 as he refused to do the task and then day 1 data only for 
+
+# Values to remove
+tmp_subj_to_remove <- c(4, 9, 12, 26, 34, 35, 41, 42, 43)
+
+
+
+
+# sd
+
+colnames(dta_expr_spk_4nmf)
+dta_expr_spk_4nmf%>%
+  select(-comp1_k3, -comp2_k3, -comp3_k3)%>%
+  filter(!subject %in% tmp_subj_to_remove)%>%
+    subset(expression!= "neutral")%>%
+  # group_by(filename, subject,bin_frame, expression, posed.spoken)%>%
+
+
+  gather("AU", "Coef", -bin_frame,-filename, -expression,-subject,-posed.spoken, -test.day) %>%
+      group_by(subject,posed.spoken,AU)%>%
+  # mutate(Coef = scale(as.numeric(Coef, na.rm = T))) %>%
+  group_by(bin_frame, expression, posed.spoken,AU)%>%
+  subset(!is.na(Coef))%>%
+    summarise_at(c("Coef"), sd, na.rm = T) %>%
+
+  ggplot(aes(bin_frame,AU,fill= Coef))+
+  geom_tile()+
+  facet_grid(expression~posed.spoken)+
+  scale_fill_viridis_c(option = "magma")+
+  ylab("Variability - SD (z)")
+
+
+
+dta_expr_spk_4nmf%>%
+    select(-comp1_k3, -comp2_k3, -comp3_k3)%>%
+  filter(!subject %in% tmp_subj_to_remove)%>%
+    subset(expression!= "neutral")%>%
+  # group_by(filename, subject,bin_frame, expression, posed.spoken)%>%
+
+
+  gather("AU", "Coef", -bin_frame,-filename, -expression,-subject,-posed.spoken, -test.day) %>%
+      group_by(subject,posed.spoken,AU)%>%
+  mutate(Coef = scale(as.numeric(Coef, na.rm = T))) %>%
+  group_by(bin_frame, expression, posed.spoken,AU)%>%
+  subset(!is.na(Coef))%>%
+    summarise_at(c("Coef"), mean, na.rm = T) %>%
+
+  ggplot(aes(bin_frame,AU,fill= Coef))+
+  geom_tile()+
+  facet_grid(expression~posed.spoken)+
+  scale_fill_viridis_c(option = "magma")+
+  ylab(" - mean")
 
 ```
