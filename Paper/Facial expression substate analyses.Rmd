@@ -508,6 +508,17 @@ spoken_NMF_with_clusters6
 
 # peak speed displ
 
+spoken_NMF_with_clusters6$filename
+
+library(dtwclust)
+
+test_cl<-spoken_NMF_with_clusters6%>%
+  subset(filename == "./cut_spoken_angry_day1_p1.csv")
+
+tmp_cl<-tsclust(test_cl[, c("sp_avg", "comp_delta_avg", "compavg")], k = c(2,3,4))
+
+summary(tmp_cl)
+
 ```
 
 

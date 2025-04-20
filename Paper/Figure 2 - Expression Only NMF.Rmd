@@ -123,11 +123,11 @@ Add Delaunay Meshes
 
 # I is for italic
 labels <- c(
-  `1` = "<img src='https://github.com/hcuve/halo_faces/raw/main/ggtextimgs/comp1_posed.png'
+  `1` = "<img src='https://github.com/hcuve/spat-tmp-emo-faces/raw/main/ggtextimgs/comp1_posed.png'
     width='100' /><br> 1",
-  `2` = "<img src='https://github.com/hcuve/halo_faces/raw/main/ggtextimgs/comp2_posed.png'
+  `2` = "<img src='https://github.com/hcuve/spat-tmp-emo-faces/raw/main/ggtextimgs/comp2_posed.png'
     width='100' /><br> 2",
-  `3` = "<img src='https://github.com/hcuve/halo_faces/raw/main/ggtextimgs/comp3_posed.png'
+  `3` = "<img src='https://github.com/hcuve/spat-tmp-emo-faces/raw/main/ggtextimgs/comp3_posed.png'
     width='100' /><br> 3"
 )
 
@@ -331,7 +331,7 @@ paper_plots$posed_comp_ts_hm
 
 
 plot_dell_posed.rds contains the delaunay meshes from AU to Landmark model
-````{r}
+```{r}
 
 require(patchwork)
 
@@ -390,6 +390,9 @@ START COMBINING
 
 upper panel of figure 2
 
+
+
+
 ```{r}
  # install.packages("ggtext")
 # install.packages("matrixStats")
@@ -398,6 +401,7 @@ library(ggtext)
 rm(figure2_posed)
 
 sf
+
 paper_plots$fig_2_posed_up_panel <- (wrap_elements(full = chool_talk$AU_NM)+ 
                     wrap_elements(full = posed_comp1_2_3)+
                     wrap_elements(ts_ts_hm_compns))+
@@ -411,6 +415,7 @@ paper_plots$fig_2_posed_up_panel
 
 lower panel (emotion panel - figure 2)
 ```{r}
+
  plot_dell_posed$posed_angry_light<- plot_dell_posed$posed_angry +
   
   theme_void()+
@@ -472,11 +477,12 @@ FIGURE 2 posed expressions panel combined
 paper_plots$fig_2_posed_up_panel
 paper_plots$fig2_lower_posed
 
+
 paper_plots$panel_NMF_posed <-
 (wrap_elements(full = paper_plots$fig_2_posed_up_panel) / 
   wrap_elements(full = paper_plots$fig2_lower_posed)) + 
   plot_layout(ncol = 1, nrow = 2, heights = c(1,1))+
-   plot_annotation(tag_levels = 'A')
+   plot_annotation(tag_levels = 'a')
   
  paper_plots$panel_NMF_posed<-  paper_plots$panel_NMF_posed &
   theme(plot.tag = element_text(size =20*(sf+.5)))
@@ -485,11 +491,28 @@ paper_plots$panel_NMF_posed <-
 paper_plots$panel_NMF_posed
 
 # setwd("~.../HaloStudy/Data/ExportedFigures")
+paper_plots$panel_NMF_posed
+   
 
-ggsave("panel_NMF_poseddpi300.tiff",device = 'tiff', paper_plots$panel_NMF_posed,
+# re-export for revision
+ggsave("Fig1_panel_NMF_poseddpi300.tiff",device = 'tiff', paper_plots$panel_NMF_posed,
+       width = 25,
+       height = 25,
+       dpi = 300,
+           compression = "lzw")
+
+
+ggsave("Fig1_panel_NMF_poseddpi300.jpg",device = 'jpg', paper_plots$panel_NMF_posed,
        width = 25,
        height = 25,
        dpi = 300)
+
+ggsave("Fig1_panel_NMF_poseddpi300.pdf",device = 'pdf', paper_plots$panel_NMF_posed,
+       width = 25,
+       height = 25,
+       dpi = 300)
+
+
 
 ggsave("panel_NMF_poseddpi300.png",device = 'png', paper_plots$panel_NMF_posed,
        width = 25,
@@ -517,4 +540,7 @@ saveRDS(paper_plots, "paper_plots.RDS")
 saveRDS(chool_talk, "chool_talk.RDS")
 
 ```
+
+
+
 

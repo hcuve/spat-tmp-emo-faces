@@ -1,0 +1,422 @@
+---
+title: "Untitled"
+author: "Helio"
+date: "2025-03-27"
+output: html_document
+---
+
+
+
+
+mod_pls_nmfaus_posed
+saveRDS(mod_pls_nmfaus_posed,
+          file.path(paths$au_to_land, 
+                    "mod_pos_pls_nmfaus_posed.rds"))
+
+
+allcomps_pred1_land_nmfaus <- predict(mod_pls_nmfaus_posed,allcomps_pred1_norm , ncomp=17)
+
+
+mod_pls_spoken
+
+predicted_spoken1_landmarks_sok_pls <- predict(mod_pls_spoken, dta_reconstr_spoken1_combined_agg1_0, ncomp = 17)
+
+
+```{r}
+mod_pls_nmfaus_posed
+mod_pls_spoken
+require(NMF)
+
+#we need the test set projection for posed and spoken
+
+mod_rslt_nmfposed_test_projection <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedData/Models/OSF/mod_rslt_nmfposed_test_projection.Rds")
+ mod_rslt_spk_nmf_test <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedData/Models/OSF/mod_rslt_spk_nmf_test.rds")
+
+dta_pos_nmf_proj<- NMF::fitted(mod_rslt_nmfposed_test_projection)
+
+dta_spk_nmf_proj<- NMF::fitted(mod_rslt_spk_nmf_test)
+
+
+
+
+# dta_expr_only_4nmf_test <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedData/Processeddata/dta_expr_only_4nmf_test.rds")
+dta_spk_4nmf_test <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedData/Processeddata/dta_spk_4nmf_test.rds")
+mod_rslt_spk_nmf_test
+nrow(dta_pos_nmf_proj)
+nrow(dta_expr_only_4nmf_test)
+nrow(dta_spk_nmf_proj)
+nrow(dta_spk_4nmf_test)
+
+
+# transform into dataframes
+dta_spk_nmf_proj
+
+dta_pos_nmf_proj<- as.data.frame(dta_pos_nmf_proj)
+dta_spk_nmf_proj<- as.data.frame(dta_spk_nmf_proj)
+
+# add meatada
+
+dta_pos_nmf_proj$filename<- dta_expr_only_4nmf_test$filename
+dta_pos_nmf_proj$bin_frame<- dta_expr_only_4nmf_test$bin_frame
+dta_pos_nmf_proj$subject<- dta_expr_only_4nmf_test$subject
+dta_pos_nmf_proj$test.day<- dta_expr_only_4nmf_test$test.day
+dta_pos_nmf_proj$expression<- dta_expr_only_4nmf_test$expression
+
+
+dta_spk_nmf_proj$filename<- dta_spk_4nmf_test$filename
+dta_spk_nmf_proj$bin_frame<- dta_spk_4nmf_test$bin_frame
+dta_spk_nmf_proj$subject<- dta_spk_4nmf_test$subject
+dta_spk_nmf_proj$test.day<- dta_spk_4nmf_test$test.day
+dta_spk_nmf_proj$expression<- dta_spk_4nmf_test$expression
+
+# spk
+
+
+```
+
+# now predict landmark from AUS
+
+
+```{r}
+
+predict(mod_pls_nmfaus_posed,allcomps_pred1_norm , ncomp=17)
+
+au_cols<- colnames(allcomps_pred1)[2:18]
+
+normalize_rowwise <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+
+require(tidyverse)
+
+dta_pos_nmf_proj_norm<-  dta_pos_nmf_proj%>%
+  group_by(filename)%>%
+  mutate(across(all_of(au_cols), 
+                ~ if_else(row_number() %in% rows_to_normalize, 
+                          normalize_rowwise(as.numeric(.)), as.numeric(.))))
+
+dta_spk_nmf_proj_norm<-  dta_spk_nmf_proj%>%
+  group_by(filename)%>%
+  mutate(across(all_of(au_cols), 
+                ~ if_else(row_number() %in% rows_to_normalize, 
+                          normalize_rowwise(as.numeric(.)), as.numeric(.))))
+
+
+
+
+
+
+```
+
+actually what we want is to use the nm model to project on the whole test set
+
+
+```{r}
+mod_rslt_nmfposed_train <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedData/Models/OSF/mod_rslt_nmfposed_train.Rds")
+
+
+dta_4_plfs_orig <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedData/Processeddata/dta_4_plfs_orig.Rds")
+
+
+dta_4_plfs_orig_pos<- dta_4_plfs_orig%>%
+  subset(posed.spoken == "posed")
+
+dta_4_plfs_orig_spk<- dta_4_plfs_orig%>%
+  subset(posed.spoken != "posed")
+
+mod_rslt_nmfposed_train@fit@W #time
+
+colnames(dta_4_plfs_orig_pos)
+
+mod_4_plfs_pos_nmf_proj<- nmf(dta_4_plfs_orig_pos[,139:155]+.0001, 
+         H = mod_rslt_nmfposed_train@fit@H, # we actually want to use H
+         rank= 3,
+          seed=123456,
+         # method = "lee", 
+         nrun = 1)
+
+
+ mod_rslt_spk_nmf_train <- readRDS("~/Library/CloudStorage/GoogleDrive-helioclemente.c@gmail.com/My Drive/2022 - University Of Birmingham/HaloStudy/Data/ExportedData/Models/OSF/mod_rslt_spk_nmf_train.rds")
+ 
+mod_4_plfs_spk_nmf_proj<- nmf(dta_4_plfs_orig_spk[,139:155]+.0001, 
+         H = mod_rslt_spk_nmf_train@fit@H, # we actually want to use H
+         rank= 3,
+          seed=123456,
+         # method = "lee", 
+         nrun = 1)
+
+
+dta_4_plfs_pos_nmf_proj<- fitted(mod_4_plfs_pos_nmf_proj)
+dta_4_plfs_spk_nmf_proj<- fitted(mod_4_plfs_spk_nmf_proj)
+
+dta_4_plfs_pos_nmf_proj<- as.data.frame(dta_4_plfs_pos_nmf_proj)
+
+dta_4_plfs_spk_nmf_proj<- as.data.frame(dta_4_plfs_spk_nmf_proj)
+
+
+
+dta_4_plfs_pos_nmf_proj$filename<- dta_4_plfs_orig_pos$filename
+# dta_4_plfs_pos_nmf_proj$bin_frame<- dta_4_plfs_orig_pos$bin_frame
+dta_4_plfs_pos_nmf_proj$subject<- dta_4_plfs_orig_pos$subject
+dta_4_plfs_pos_nmf_proj$test.day<- dta_4_plfs_orig_pos$test.day
+dta_4_plfs_pos_nmf_proj$expression<- dta_4_plfs_orig_pos$expression
+dta_4_plfs_pos_nmf_proj$frame<- dta_4_plfs_orig_pos$frame
+
+
+dta_4_plfs_spk_nmf_proj$filename<- dta_4_plfs_orig_spk$filename
+# dta_4_plfs_spk_nmf_proj$bin_frame<- dta_4_plfs_orig_spk$bin_frame
+dta_4_plfs_spk_nmf_proj$subject<- dta_4_plfs_orig_spk$subject
+dta_4_plfs_spk_nmf_proj$test.day<- dta_4_plfs_orig_spk$test.day
+dta_4_plfs_spk_nmf_proj$expression<- dta_4_plfs_orig_spk$expression
+dta_4_plfs_spk_nmf_proj$frame<- dta_4_plfs_orig_spk$frame
+
+dta_4_plfs_pos_nmf_proj$frame
+dta_4_plfs_spk_nmf_proj
+
+dta_4_plfs_spk_nmf_proj
+```
+Now predict landmarks fro aus
+
+```{r}
+
+dta_4_plfs_pos_nmf_proj
+dta_4_plfs_spk_nmf_proj
+
+
+# range(dta_4_plfs_pos_nmf_proj$AU26_r_Jaw_drop)
+
+dta_4_plfs_pos_nmf_proj_norm<-  dta_4_plfs_pos_nmf_proj%>%
+    group_by(filename)%>%
+    mutate(across(.cols = all_of(col_aus), 
+                .fns = normalize_between_0_and_1))%>%
+  ungroup()
+
+range(dta_4_plfs_pos_nmf_proj_norm[,cols_to_normalize])
+
+dta_4_plfs_spk_nmf_proj_norm<-  dta_4_plfs_spk_nmf_proj%>%
+ group_by(filename)%>%
+    mutate(across(.cols = all_of(col_aus), 
+                .fns = normalize_between_0_and_1))%>%
+  ungroup()
+
+range(dta_4_plfs_spk_nmf_proj_norm[,cols_to_normalize])
+
+range(dta_4_plfs_spk_nmf_proj_norm[,cols_to_normalize])
+
+# predict landmarks
+library(pls)
+
+options(scipen = 999)
+colnames(dta_4_plfs_pos_nmf_proj_norm)
+
+dta_4_plfs_pos_nmf_proj_norm
+
+# dta_4_plfs_pos_nmf_land_proj<- predict(mod_pls,dta_4_plfs_pos_nmf_proj_norm , ncomp=17)
+
+# FOR THIS PURPOSE WE NEED TO TRAIN THE PLS CLASSIFIER SEPARATELLY FOR EACH EMOTION
+
+dta_4_plfs_pos_nmf_land_proj<- predict(mod_pls_test,dta_4_plfs_pos_nmf_proj_norm , ncomp=17)
+
+dta_4_plfs_pos_nmf_proj_norm_an<- dta_4_plfs_pos_nmf_proj_norm%>%
+  subset(expression == "angry")
+
+dta_4_plfs_pos_nmf_proj_norm_sad<- dta_4_plfs_pos_nmf_proj_norm%>%
+  subset(expression == "sad")
+
+
+dta_4_plfs_pos_nmf_proj_norm_hap<- dta_4_plfs_pos_nmf_proj_norm%>%
+  subset(expression == "happy")
+# posed emotion speciifc projections
+dta_4_plfs_pos_nmf_land_proj_an<- predict(mod_pls_ang,dta_4_plfs_pos_nmf_proj_norm_an , ncomp=17)
+dta_4_plfs_pos_nmf_land_proj_sad<- predict(mod_pls_sad,dta_4_plfs_pos_nmf_proj_norm_sad , ncomp=17)
+dta_4_plfs_pos_nmf_land_proj_hap<- predict(mod_pls_hap,dta_4_plfs_pos_nmf_proj_norm_hap , ncomp=17)
+dta_4_plfs_pos_nmf_proj_norm_an
+
+dta_4_plfs_pos_nmf_land_proj_an<- as.data.frame(dta_4_plfs_pos_nmf_land_proj_an)%>%
+  mutate(filename = dta_4_plfs_pos_nmf_proj_norm_an$filename,
+         frame =dta_4_plfs_pos_nmf_proj_norm_an$frame,
+         expression = dta_4_plfs_pos_nmf_proj_norm_an$expression)
+
+dta_4_plfs_pos_nmf_land_proj_sad<- as.data.frame(dta_4_plfs_pos_nmf_land_proj_sad)%>%
+  mutate(filename = dta_4_plfs_pos_nmf_proj_norm_sad$filename,
+         frame =dta_4_plfs_pos_nmf_proj_norm_sad$frame,
+         expression = dta_4_plfs_pos_nmf_proj_norm_sad$expression)
+
+dta_4_plfs_pos_nmf_land_proj_hap<- as.data.frame(dta_4_plfs_pos_nmf_land_proj_hap)%>%
+  mutate(filename = dta_4_plfs_pos_nmf_proj_norm_hap$filename,
+         frame =dta_4_plfs_pos_nmf_proj_norm_hap$frame,
+         expression = dta_4_plfs_pos_nmf_proj_norm_hap$expression)
+
+dta_4_plfs_pos_nmf_land_proj<- bind_rows(dta_4_plfs_pos_nmf_land_proj_an,
+          dta_4_plfs_pos_nmf_land_proj_sad,
+          dta_4_plfs_pos_nmf_land_proj_hap)
+
+# spoken emotion specific pls land
+
+dta_4_plfs_spk_nmf_proj_norm
+
+dta_4_plfs_spk_nmf_proj_norm_an<- dta_4_plfs_spk_nmf_proj_norm%>%
+  subset(expression == "angry")
+
+dta_4_plfs_spk_nmf_proj_norm_sad<- dta_4_plfs_spk_nmf_proj_norm%>%
+  subset(expression == "sad")
+
+
+dta_4_plfs_spk_nmf_proj_norm_hap<- dta_4_plfs_spk_nmf_proj_norm%>%
+  subset(expression == "happy")
+
+
+# dta_4_plfs_spk_nmf_land_proj<- predict(mod_pls_spoken,dta_4_plfs_spk_nmf_proj_norm , ncomp=17)
+
+dta_4_plfs_spk_nmf_land_proj_an<- predict(mod_pls_spoken_an,dta_4_plfs_spk_nmf_proj_norm_an , ncomp=17)
+dta_4_plfs_spk_nmf_land_proj_sad<- predict(mod_pls_spoken_sad,dta_4_plfs_spk_nmf_proj_norm_sad , ncomp=17)
+dta_4_plfs_spk_nmf_land_proj_hap<- predict(mod_pls_spoken_hap,dta_4_plfs_spk_nmf_proj_norm_hap , ncomp=17)
+
+
+dta_4_plfs_spk_nmf_land_proj_an<- as.data.frame(dta_4_plfs_spk_nmf_land_proj_an)%>%
+  mutate(filename = dta_4_plfs_spk_nmf_proj_norm_an$filename,
+         frame =dta_4_plfs_spk_nmf_proj_norm_an$frame,
+         expression = dta_4_plfs_spk_nmf_proj_norm_an$expression)
+
+
+dta_4_plfs_spk_nmf_land_proj_sad<- as.data.frame(dta_4_plfs_spk_nmf_land_proj_sad)%>%
+  mutate(filename = dta_4_plfs_spk_nmf_proj_norm_sad$filename,
+         frame =dta_4_plfs_spk_nmf_proj_norm_sad$frame,
+         expression = dta_4_plfs_spk_nmf_proj_norm_sad$expression)
+
+dta_4_plfs_spk_nmf_land_proj_hap<- as.data.frame(dta_4_plfs_spk_nmf_land_proj_hap)%>%
+  mutate(filename = dta_4_plfs_spk_nmf_proj_norm_hap$filename,
+         frame =dta_4_plfs_spk_nmf_proj_norm_hap$frame,
+         expression = dta_4_plfs_spk_nmf_proj_norm_hap$expression)
+
+dta_4_plfs_spk_nmf_land_proj<- bind_rows(dta_4_plfs_spk_nmf_land_proj_an,
+          dta_4_plfs_spk_nmf_land_proj_sad,
+          dta_4_plfs_spk_nmf_land_proj_hap)
+
+```
+
+
+# now export plfs
+
+continue here
+
+```{r}
+dta_4_plfs_spk_nmf_land_proj
+dta_4_plfs_pos_nmf_land_proj
+
+# dta_4_plfs_pos_nmf_land_proj<- as.data.frame(dta_4_plfs_pos_nmf_land_proj)
+
+# 
+# dta_4_plfs_pos_nmf_land_proj$filename<- dta_4_plfs_pos_nmf_proj$filename
+# dta_4_plfs_pos_nmf_land_proj$frame<- dta_4_plfs_pos_nmf_proj$frame
+
+
+# unique(dta_4_plfs_pos_nmf_land_proj$filename)
+dta_4_plfs_pos_nmf_land_proj
+
+dta_4_plfs_pos_nmf_land_proj%>%
+  pivot_longer(
+    cols = matches("^[xy]_"),
+    names_to = c(".value", "id"),
+    names_pattern = "([xy])_(\\d+)\\.17 comps"
+  ) %>%
+  mutate(id = as.integer(id))%>%
+  group_by(filename,id,expression)%>%
+  summarise_if(is.numeric,mean, na.rm = T)%>%
+  ggplot(aes(x,y))+
+  geom_point()+
+  facet_grid(~expression)
+
+
+
+
+  
+# 
+# dta_4_plfs_spk_nmf_land_proj<- as.data.frame(dta_4_plfs_spk_nmf_land_proj)
+# 
+# #
+# dta_4_plfs_spk_nmf_land_proj$filename<- dta_4_plfs_spk_nmf_proj$filename
+# dta_4_plfs_spk_nmf_land_proj$frame<- dta_4_plfs_spk_nmf_proj$frame
+# 
+# dta_4_plfs_spk_nmf_land_proj$expression<- dta_4_plfs_spk_nmf_proj$expression
+
+
+# 
+
+dta_4_plfs_pos_spk_nmf_land_proj<- bind_rows(dta_4_plfs_pos_nmf_land_proj,
+          dta_4_plfs_spk_nmf_land_proj
+          )
+
+
+# colnames(dta_4_plfs_pos_spk_nmf_land_proj)
+
+
+dta_4_plfs_pos_spk_nmf_land_proj<- dta_4_plfs_pos_spk_nmf_land_proj%>%
+mutate(time = frame / 25)
+
+
+
+
+
+```
+
+
+animate reconstructions
+```{r}
+
+tmp_filenames <- unique(dta_4_plfs_pos_spk_nmf_land_proj$filename)
+
+# colnames(dta_4_plfs_pos_spk_nmf_land_proj)
+
+
+dta_4_plfs_pos_spk_nmf_land_proj_long <- dta_4_plfs_pos_spk_nmf_land_proj %>%
+  pivot_longer(
+    cols = matches("^[xy]_"),
+    names_to = c(".value", "id"),
+    names_pattern = "([xy])_(\\d+)\\.17 comps"
+  ) %>%
+  mutate(id = as.integer(id))  # Convert id to numeric if required
+
+# df_long now has the columns: filename, frame, time, id, x, y
+require(gganimate)
+
+for(fn in tmp_filenames) {
+  # Filter the data for the current filename.
+  d_tmp <- dta_4_plfs_pos_spk_nmf_land_proj_long %>% filter(filename == fn)
+    # d_tmp <- dta_4_plfs_pos_spk_nmf_land_proj_long %>% filter(filename == tmp_filenames[1])
+  
+  # Calculate duration for this file from the time variable.
+  file_duration <- max(d_tmp$time)
+  cat("Filename:", fn, "- Duration:", file_duration, "\n")
+  
+  # Create the animation plot.
+  # no smooth first
+  # x_smooth, y = y_smooth
+  p <- ggplot(d_tmp, aes(x = x, y = y)) +
+    geom_point(color = "white", size = 4) +
+    scale_y_reverse()+
+    coord_fixed() +
+    theme_void() +
+    theme(
+      plot.background = element_rect(fill = "black", colour = NA),
+      panel.background = element_rect(fill = "black", colour = NA),
+      plot.margin = margin(0, 0, 0, 0)
+    ) +
+    transition_time(time) +
+    labs(title = paste("Filename:", fn, "- Time: {frame_time}s"))
+  
+  # Render the animation as an MP4 with 24 fps.
+  anim <- animate(p, 
+                  width = 1920, 
+                  height = 1080, 
+                  # fps = 24,
+                  duration = file_duration,  # per-file duration
+                  renderer = ffmpeg_renderer(),
+                  bg = "black")
+  
+  # Save the animation.
+  anim_save(paste0(fn, "_nmf.mp4"), animation = anim)
+}
+
+
+```

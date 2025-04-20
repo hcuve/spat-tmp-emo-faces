@@ -482,14 +482,29 @@ paper_plots$panel_posed_fig3_ggside
 
 
 
-
-ggsave("panel_posed_fig3_ggsidenew.tiff",  paper_plots$panel_posed_fig3_ggside,
+# export in revisions
+ggsave("Fig2_panel_posed_fig3_ggsidenew.tiff",  paper_plots$panel_posed_fig3_ggside,
        device = "tiff",
        width = 17,
        # 
        height = 10,
-       dpi = 800
-       )
+       dpi = 300,
+       compression = "lzw")
+
+
+ggsave("Fig2_panel_posed_fig3_ggsidenew.jpg",  paper_plots$panel_posed_fig3_ggside,
+       device = "jpg",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 300)
+
+ggsave("Fig2_panel_posed_fig3_ggsidenew.pdf",  paper_plots$panel_posed_fig3_ggside,
+       device = "pdf",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 300)
 
 
 ggsave("panel_posed_fig3_ggsidenew.png",  paper_plots$panel_posed_fig3_ggside,

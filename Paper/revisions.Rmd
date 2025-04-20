@@ -178,6 +178,8 @@ nrow(dta_4_plfs_sel_long_test_prct)
 colnames(dta_4_plfs_sel_long_test_prct)
 dta_4_plfs_sel_long_test_prct
 
+saveRDS(dta_4_plfs, "dta_4_plfs_orig.Rds")
+
 ```
 
 # smooth a bit to avoid inherent jitter
@@ -527,29 +529,53 @@ dta_scirep_all2%>%
 
 
 
+dta_scirep_all2$slider <- str_remove(dta_scirep_all2$object_name, "_slider")
 
+dta_scirep_all2$condition <- if_else(dta_scirep_all2$posed_spoken == "posed", "expression only", "emotive speech")
 
+dta_scirep_all2$condition<- factor(dta_scirep_all2$condition, levels = c("expression only", "emotive speech"))
+
+dta_scirep_all2$filename
+reviews$stiom_valid<-
 
 dta_scirep_all2%>%
   #subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
-  group_by(participant_private_id,expression, object_name, posed_spoken)%>%
+  # group_by(participant_private_id,expression, object_name, condition,slider)%>%
+  group_by(filename,expression, object_name, condition,slider)%>%  
+  
   summarise_if(is.numeric, mean, na.rm = T)%>%
   #mutate(response = if_else(object_name == "other_emotion" & response> 75,NA,response))%>%
   subset(object_name!= "other_emotion")%>%
-  group_by(expression, posed_spoken)%>%
+  group_by(expression, condition)%>%
   mutate(response = scale(response))%>%
   ggplot(aes(expression, response, 
-             colour  = object_name,
-             shape = object_name))+
+             colour  = slider,
+             shape = slider))+
   #geom_boxplot(aes(colour = object_name),  width = .1, position = position_dodge(1))+
-  #geom_point(aes(group = object_name), position = position_dodge(1), alpha = .1)+
-    stat_summary(geom = "pointrange",position = position_dodge(1))+
-  facet_grid(~posed_spoken)
+  geom_point(aes(group = slider), position = position_dodge(1), alpha = .1)+
+    stat_summary(geom = "pointrange",position = position_dodge(1), size = .6)+
+  facet_wrap(~condition, scale = "free_y")+
+  scale_color_brewer(palette = "Dark2")+
+  ylab("response (z)")+
+  p$graphstyle_int+
+  theme(axis.text.x = element_text(hjust = 1, angle =45),
+        legend.position = "top")
 
+
+reviews$stiom_valid
+
+ggsave("sm_stim_valid.tiff",
+       device = 'tiff', reviews$stiom_valid,
+       width = 10,
+       height = 6,
+       dpi = 300,
+       compression = "lzw")
 
 
 
 ```
+
+
 
 # plot distributions
 
@@ -612,29 +638,34 @@ dta_scirep_all2%>%
   group_by(participant_private_id,expression, object_name, posed_spoken)%>%
 
   summarise_if(is.numeric, mean, na.rm = T)%>%
-  # group_by(expression, posed_spoken) %>%
-  # mutate(
-  #   q_1 = quantile(response, 0.25, na.rm = TRUE),
-  #   q_3 = quantile(response, 0.75, na.rm = TRUE),
-  #   iqr =  q_3-q_1,
-  #   lower_bound = q_1 - 1 * iqr,
-  #   upper_bound = q_3 + 1 * iqr
-  # ) %>%
-  # mutate(is_outlier = response < lower_bound | response > upper_bound)%>%
-  # subset(is_outlier == FALSE)%>%
   ungroup()%>%
+  subset(posed_spoken == "posed")%>%
   
 subset(object_name != "other_emotion")%>%
-  ggplot(aes(expression, response, 
+  ggplot(aes(object_name, response, 
              colour  = object_name))+
-  #geom_boxplot(aes(colour = object_name),  width = .3, position = position_dodge(1))+
-  #geom_point(aes(group = object_name), position = position_dodge(1), alpha = .2)+
-  
-   #geom_label(aes(group = object_name,label = participant_private_id ), 
-             # position = position_dodge(1), alpha = .2)+
     stat_summary(geom = "pointrange",
                  position = position_dodge(1))+
-  facet_grid(~posed_spoken)
+  facet_wrap(~expression, scales = "free_y")
+
+
+
+dta_scirep_all2%>%
+  subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
+  subset(participant_private_id !="13017685")%>%
+     # subset(is_outlier == FALSE)%>%
+  group_by(participant_private_id,expression, object_name, posed_spoken)%>%
+
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  ungroup()%>%
+  subset(posed_spoken != "posed")%>%
+  
+subset(object_name != "other_emotion")%>%
+  ggplot(aes(object_name, response, 
+             colour  = object_name))+
+    stat_summary(geom = "pointrange",
+                 position = position_dodge(1))+
+  facet_wrap(~expression, scales = "free_y")
 
 
 
@@ -748,7 +779,7 @@ dta_scirep_all_wd_by_vid$max_expression_resp
 dta_scirep_all_wd_by_vid$max_expression_resp_n_oth
 
 # now merge the nnf classification data with subject level perceptual data on the test set
-
+dta_scirep_all_wd
 dta_scirep_all_wd_by_sbj<- left_join(dta_scirep_all_wd, dta_rf_test_pos_spk,
                                         by = c("filename", "expression"))
 
@@ -775,6 +806,17 @@ dta_scirep_all_wd_by_vid$max_expression_resp_n_oth2<- sub("_.*", "",  dta_scirep
 dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth2 <- sub("_.*", "",  dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth)
 
 
+
+
+
+
+dta_scirep_all_wd
+
+write_csv(dta_scirep_all_wd, "dta_scirep_all_wd.csv")
+
+
+
+dta_scirep_all_wd$max_expression_resp_n_oth
 
 
 
@@ -810,17 +852,16 @@ tabs
 
 
 #simple chi-square test
-chisq.test(dta_scirep_all_wd_by_sbj$prediction,
+chisq.test(dta_scirep_all_wd_by_sbj$expression,
            dta_scirep_all_wd_by_sbj$max_expression_resp2)
-chisq.test(dta_scirep_all_wd_by_sbj$prediction,
+chisq.test(dta_scirep_all_wd_by_sbj$expression,
            dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth2)
 
 #consistent
-
-chisq.test(dta_scirep_all_wd_by_vid$prediction,
+chisq.test(dta_scirep_all_wd_by_vid$expression,
            dta_scirep_all_wd_by_vid$max_expression_resp2)
 
-chisq.test(dta_scirep_all_wd_by_vid$prediction,
+chisq.test(dta_scirep_all_wd_by_vid$expression,
            dta_scirep_all_wd_by_vid$max_expression_resp_n_oth2)
 
 
@@ -850,22 +891,77 @@ dta_scirep_all_wd_by_vid$max_expression_resp2<- factor(dta_scirep_all_wd_by_vid$
 dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth2<- factor(dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth2)
 dta_scirep_all_wd_by_vid$max_expression_resp_n_oth2<-factor(dta_scirep_all_wd_by_vid$max_expression_resp_n_oth2)
 
+dta_scirep_all_wd_by_sbj$expression<- factor(dta_scirep_all_wd_by_sbj$expression)
 
-confusionMatrix(dta_scirep_all_wd_by_sbj$prediction, 
+
+confusionMatrix(dta_scirep_all_wd_by_sbj$expression, 
                 dta_scirep_all_wd_by_sbj$max_expression_resp2)
 
-confusionMatrix(dta_scirep_all_wd_by_sbj$prediction, 
+confusionMatrix(dta_scirep_all_wd_by_sbj$expression, 
                 dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth2)
 
+dta_scirep_all_wd_by_vid$expression<- factor(dta_scirep_all_wd_by_vid$expression)
 
 
-confusionMatrix(dta_scirep_all_wd_by_vid$prediction, 
+confusionMatrix(dta_scirep_all_wd_by_vid$expression, 
                 dta_scirep_all_wd_by_vid$max_expression_resp2)
 
 confusionMatrix(dta_scirep_all_wd_by_vid$prediction, 
                 dta_scirep_all_wd_by_vid$max_expression_resp_n_oth2)
 
 
+dta_scirep_all_wd_by_vid$prediction
+
+
+dta_scirep_all_wd_by_vid
+
+dta_scirep_all_wd_by_vid$filename
+dta_scirep_all_wd_by_vid$participant_private_id
+
+reviews$sm_nmf_vs_emo_rat <-
+dta_scirep_all_wd_by_sbj%>%
+  select(filename, participant_private_id,posed_spoken,
+         expression,prediction, contains("slider"),max_expression_resp_n_oth2)%>%
+pivot_longer(
+    cols = c(happy_slider, angry_slider, sad_slider),
+    names_to = "slider",
+    values_to = "response"
+  )%>%
+  mutate(condition = posed_spoken)%>%
+  mutate(slider = str_remove(slider, "_slider"))%>%
+
+  #subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
+  # group_by(participant_private_id,expression, object_name, condition,slider)%>%
+  group_by( filename, prediction, condition,slider,max_expression_resp_n_oth2)%>%  
+  
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  #mutate(response = if_else(object_name == "other_emotion" & response> 75,NA,response))%>%
+  # subset(object_name!= "other_emotion")%>%
+  group_by(prediction, condition)%>%
+  mutate(response = scale(response))%>%
+  ggplot(aes(prediction, response, 
+             colour  = slider,
+             shape = slider))+
+  #geom_boxplot(aes(colour = object_name),  width = .1, position = position_dodge(1))+
+  geom_point(aes(group = slider), position = position_dodge(1), alpha = .1)+
+    stat_summary(geom = "pointrange",position = position_dodge(1), size = .6)+
+  facet_wrap(~condition, scale = "free_y")+
+  scale_color_brewer(palette = "Dark2")+
+  xlab("expression prediction from NMF model")+
+  ylab("response (z)")+
+  p$graphstyle_int+
+  theme(axis.text.x = element_text(hjust = 1, angle =45),
+        legend.position = "top")
+
+
+ggsave(reviews$sm_nmf_vs_emo_rat)
+
+ggsave("sm_sm_nmf_vs_emo_rat.tiff",
+       device = 'tiff', reviews$sm_nmf_vs_emo_rat,
+       width = 10,
+       height = 6,
+       dpi = 300,
+       compression = "lzw")
 
 ```
 
@@ -882,34 +978,77 @@ dta_scirep_all_wd_by_vid_spk<- dta_scirep_all_wd_by_vid%>%subset(posed_spoken !=
 
 # by subj
 
-confusionMatrix(factor(dta_scirep_all_wd_by_sbj_pos$prediction), 
-                factor(dta_scirep_all_wd_by_sbj_pos$max_expression_resp2))
+dta_scirep_all_wd_by_sbj_pos$expression<- factor(dta_scirep_all_wd_by_sbj_pos$expression)
 
 
-confusionMatrix(dta_scirep_all_wd_by_sbj_pos$prediction, 
+
+chisq.test(dta_scirep_all_wd_by_sbj_pos$expression, 
+                dta_scirep_all_wd_by_sbj_pos$max_expression_resp_n_oth2,
+           simulate.p.value = TRUE)
+
+confusionMatrix(dta_scirep_all_wd_by_sbj_pos$expression, 
                 dta_scirep_all_wd_by_sbj_pos$max_expression_resp_n_oth2)
 
 
-confusionMatrix(factor(dta_scirep_all_wd_by_sbj_spk$prediction), 
-                factor(dta_scirep_all_wd_by_sbj_spk$max_expression_resp2))
-
-
-confusionMatrix(dta_scirep_all_wd_by_sbj_spk$prediction, 
+confusionMatrix(dta_scirep_all_wd_by_sbj_spk$expression, 
                 dta_scirep_all_wd_by_sbj_spk$max_expression_resp_n_oth2)
 
+chisq.test(dta_scirep_all_wd_by_sbj_spk$expression, 
+                dta_scirep_all_wd_by_sbj_spk$max_expression_resp_n_oth2,
+           simulate.p.value = TRUE)
 
+
+
+
+dta_scirep_all2
+
+```
+
+
+Use video as we are validating video
+
+```{r}
 # by vid
-confusionMatrix(dta_scirep_all_wd_by_vid_pos$prediction, 
-                dta_scirep_all_wd_by_vid_pos$max_expression_resp2)
-confusionMatrix(dta_scirep_all_wd_by_vid_pos$prediction, 
+# confusionMatrix(dta_scirep_all_wd_by_vid_pos$prediction, 
+#                 dta_scirep_all_wd_by_vid_pos$max_expression_resp2)
+dta_scirep_all_wd_by_vid_pos
+dta_scirep_all_wd_by_vid_pos$expression<- factor(dta_scirep_all_wd_by_vid_pos$expression)
+
+chisq.test(dta_scirep_all_wd_by_vid_pos$expression, 
+                dta_scirep_all_wd_by_vid_pos$max_expression_resp_n_oth2,
+           simulate.p.value = TRUE)
+
+chisq.test(dta_scirep_all_wd_by_vid_spk$expression, 
+                dta_scirep_all_wd_by_vid_spk$max_expression_resp_n_oth2, simulate.p.value = TRUE)
+
+
+confusionMatrix(dta_scirep_all_wd_by_vid_pos$expression, 
                 dta_scirep_all_wd_by_vid_pos$max_expression_resp_n_oth2)
-# both distinguisable
 
-confusionMatrix(dta_scirep_all_wd_by_vid_spk$prediction, 
-                dta_scirep_all_wd_by_vid_spk$max_expression_resp2)
 
-confusionMatrix(dta_scirep_all_wd_by_vid_spk$prediction, 
+
+confusionMatrix(dta_scirep_all_wd_by_vid_spk$expression, 
                 dta_scirep_all_wd_by_vid_spk$max_expression_resp_n_oth2)
+
+# dta_scirep_all_wd_by_vid_spk$expression<- factor(dta_scirep_all_wd_by_vid_spk$expression)
+
+
+```
+
+
+# report
+```{r}
+dta_scirep_all_wd_by_vid_spk$expression<- factor(dta_scirep_all_wd_by_vid_spk$expression)
+dta_scirep_all_wd_by_vid_spk$max_expression_resp_n_oth2<- factor(dta_scirep_all_wd_by_vid_spk$max_expression_resp_n_oth2)
+
+
+
+chisq.test(dta_scirep_all_wd_by_vid_pos$prediction,
+           dta_scirep_all_wd_by_vid_pos$max_expression_resp_n_oth2,simulate.p.value = TRUE)
+
+chisq.test(dta_scirep_all_wd_by_vid_spk$prediction,
+           dta_scirep_all_wd_by_vid_spk$max_expression_resp_n_oth2,simulate.p.value = TRUE)
+
 
 
 
@@ -956,6 +1095,8 @@ mod_emoperc_nmf_no_oth<- train(max_expression_resp_n_oth2 ~ comp1_scale + comp2_
 
 mod_emoperc_nmf_no_oth$results
 
+
+
 # accuracy metrics
 confusionMatrix(data = mod_emoperc_nmf_no_oth$pred$pred, 
                 reference = mod_emoperc_nmf_no_oth$pred$obs)
@@ -968,9 +1109,10 @@ confusionMatrix(data = mod_emoperc_nmf_no_oth$pred$pred,
 
 ```
 
+By video
 SPLIT BY EMOTION ONLY AND EMOTIVE SPEECH
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 
 
 #pose vs spk
@@ -987,20 +1129,7 @@ mod_emoperc_nmf_pos<- train(max_expression_resp2 ~ comp1_scale + comp2_scale + c
 confusionMatrix(data = mod_emoperc_nmf_pos$pred$pred, 
                 reference = mod_emoperc_nmf_pos$pred$obs)
 
-mod_emoperc_nmf_pos_no_oth<- train(max_expression_resp_n_oth2 ~ comp1_scale + comp2_scale + comp3_scale,
-                              data = dta_scirep_all_wd_by_vid_pos,
-                              method = "rf",
-                              trControl = trainControl(method = "LOOCV"),
-                              ntree = 500)
 
-
-
-# accuracy metrics
-confusionMatrix(data = mod_emoperc_nmf_pos_no_oth$pred$pred, 
-                reference = mod_emoperc_nmf_pos_no_oth$pred$obs)
-
-
-#spk
 mod_emoperc_nmf_spk <- train(max_expression_resp2 ~ comp1_scale + comp2_scale + comp3_scale,
                               data = dta_scirep_all_wd_by_vid_spk,
                               method = "rf",
@@ -1013,8 +1142,14 @@ mod_emoperc_nmf_spk <- train(max_expression_resp2 ~ comp1_scale + comp2_scale + 
 confusionMatrix(data = mod_emoperc_nmf_spk$pred$pred, 
                 reference = mod_emoperc_nmf_spk$pred$obs)
 
-mod_emoperc_nmf_spk_no_oth <- train(max_expression_resp_n_oth2 ~ comp1_scale + comp2_scale + comp3_scale,
-                              data = dta_scirep_all_wd_by_vid_spk,
+
+```
+
+no other
+```{r}
+
+mod_emoperc_nmf_pos_no_oth<- train(max_expression_resp_n_oth2 ~ comp1_scale + comp2_scale + comp3_scale,
+                              data = dta_scirep_all_wd_by_vid_pos,
                               method = "rf",
                               trControl = trainControl(method = "LOOCV"),
                               ntree = 500)
@@ -1022,18 +1157,218 @@ mod_emoperc_nmf_spk_no_oth <- train(max_expression_resp_n_oth2 ~ comp1_scale + c
 
 
 # accuracy metrics
+mod_emoperc_nmf_pos_no_oth$results
+
+confusionMatrix(data = mod_emoperc_nmf_pos_no_oth$pred$pred, 
+                reference = mod_emoperc_nmf_pos_no_oth$pred$obs)
+
+
+
+```
+
+
+#spk
+
+```{r}
+ctrl_pos_vid <- trainControl(method = "cv", index = loo_train_indices_spk,
+                       savePredictions = "final")
+
+set.seed(42)
+mod_emoperc_nmf_spk_no_oth <- train(max_expression_resp_n_oth2 ~ comp1_scale + comp2_scale + comp3_scale,
+                              data = dta_scirep_all_wd_by_vid_spk,
+                              method = "rf",
+                              trControl = trainControl(method = "LOOCV",savePredictions = "final"),
+                              
+                              ntree = 500)
+
+
+mod_emoperc_nmf_spk_no_oth$pred
+# accuracy metrics
 confusionMatrix(data = mod_emoperc_nmf_spk_no_oth$pred$pred, 
                 reference = mod_emoperc_nmf_spk_no_oth$pred$obs)
 
-#significant
+
+
+```
+
+
+
+```{r}
+
+
 unique(dta_rf_test_pos_spk_w_subj$participant_private_id)
 # 13017672 (actual ppt)
 #13017685 = H
 
 
 
+mod_emoperc_nmf_spk$finalModel$forest
+
+  mod_emoperc_nmf_spk$pred %>%
+  group_by(rowIndex) %>%
+  summarise(accuracy = mean(pred == obs))%>%
+  ggplot(aes(factor(rowIndex), accuracy))+
+  geom_point()+
+  geom_hline(yintercept = 0.4554)+
+  geom_bar(stat = "identity", width = .1)+
+  labs(title = "Accuracy by Left-Out Participant (Fold)",
+       x = "Fold (Left-Out Participant)",
+       y = "Accuracy") +
+  theme_minimal()
+  
+  
+  
+
+  
+  
+  mod_emoperc_nmf_pos_no_oth %>%
+  group_by(rowIndex) %>%
+  summarise(accuracy = mean(pred == obs))%>%
+  ggplot(aes(factor(rowIndex), accuracy))+
+  geom_point()+
+    
+    geom_hline(yintercept = 0.4554, colour = "red", linetype = "dashed")+
+ geom_hline(yintercept = .33, colour = "pink", linetype = "dashed")+
+    
+    
+  geom_bar(stat = "identity", width = .1)+
+  labs(title = "Accuracy by Left-Out Participant (Fold)",
+       x = "Fold (Left-Out Participant)",
+       y = "Accuracy") +
+  theme_minimal()
+  
+
+# dta_scirep_all_wd_by_vid_spk$prediction_nmf_comp_rat<- predict(mod_emoperc_nmf_spk_no_oth,dta_scirep_all_wd_by_vid_spk)
 
 
+# dta_scirep_all_wd_by_vid_pos$prediction_nmf_comp_rat<- predict(mod_emoperc_nmf_pos_no_oth,dta_scirep_all_wd_by_vid_pos)
+
+
+# these give exactly the same result
+  
+  
+  
+  predictions_df <- mod_emoperc_nmf_spk_no_oth$pred
+
+# Identify whether each prediction was correct
+predictions_df$correct <- ifelse(predictions_df$pred == predictions_df$obs, 1, 0)
+
+# Create an index to represent each left-out sample (fold)
+predictions_df$fold_index <- seq_len(nrow(predictions_df))
+
+# Plot using ggplot2
+library(ggplot2)
+
+ggplot(predictions_df, aes(x = fold_index, y = correct)) +
+  geom_point() +
+  geom_line() +
+  ylim(0, 1) +
+  labs(x = "Left-out Sample (Fold Index)", 
+       y = "Accuracy (0 = Incorrect, 1 = Correct)",
+       title = "LOOCV Accuracy for Each Left-out Sample")
+
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+dta_scirep_all_wd_by_vid_spk
+
+
+# Updated helper function to generate decision boundary plots with overlaid data points
+plot_decision_boundary <- function(data, model, comp_x, comp_y, fixed_comp, fixed_value, 
+                                   x_label = comp_x, y_label = comp_y) {
+  # Create a sequence over the range of the two components
+  x_range <- seq(min(data[[comp_x]], na.rm = TRUE), max(data[[comp_x]], na.rm = TRUE), length.out = 100)
+  y_range <- seq(min(data[[comp_y]], na.rm = TRUE), max(data[[comp_y]], na.rm = TRUE), length.out = 100)
+  
+  # Create grid for predictions using base R naming
+  grid <- expand.grid(x_range, y_range)
+  colnames(grid) <- c(comp_x, comp_y)
+  grid[[fixed_comp]] <- fixed_value
+  
+  # Predict using the model
+  grid$pred <- predict(model, newdata = grid)
+  
+  # Generate the plot
+  p <- ggplot() +
+    # Decision boundaries from prediction grid
+    geom_tile(data = grid, aes_string(x = comp_x, y = comp_y, fill = "pred"), alpha = 0.2) +
+    # stat_contour(data = grid, aes_string(x = comp_x, y = comp_y, z = "as.numeric(pred)"),
+    #              color = "black", bins = 3, alpha = 0.7) +
+    # Overlay actual data points with true labels
+    geom_point(data = data, 
+               aes_string(x = comp_x, y = comp_y, colour = "expression"), 
+               size = 2) +
+    labs(title = paste(x_label, "vs.", y_label),
+         x = x_label,
+         y = y_label) +
+    theme_minimal()
+  
+  return(p)
+}
+
+# Use the Emotive Speech data and the trained model (mod_emoperc_nmf_spk_no_oth)
+data_spk <- dta_scirep_all_wd_by_vid_spk
+
+# For comp1 vs comp2, hold comp3 constant at its median value:
+p1 
+
+test<-data_spk%>%
+                         subset(comp1_scale>-3 & comp2_scale<3)
+
+plot_decision_boundary(data = test,
+                       model = mod_emoperc_nmf_spk_no_oth,
+                             comp_x = "comp1_scale", comp_y = "comp2_scale", 
+                             fixed_comp = "comp3_scale", 
+                             fixed_value = median(test$comp3_scale, na.rm = TRUE),
+                             x_label = "Component 1", y_label = "Component 2")
+
+# For comp1 vs comp3, hold comp2 constant at its median value:
+plot_decision_boundary(data = test, model = mod_emoperc_nmf_spk_no_oth,
+                             comp_x = "comp1_scale", comp_y = "comp3_scale", 
+                             fixed_comp = "comp2_scale", 
+                             fixed_value = median(test$comp2_scale, na.rm = TRUE),
+                             x_label = "Component 1", y_label = "Component 3")
+
+# For comp2 vs comp3, hold comp1 constant at its median value:
+ plot_decision_boundary(data = test, model = mod_emoperc_nmf_spk_no_oth,
+                             comp_x = "comp2_scale", comp_y = "comp3_scale", 
+                             fixed_comp = "comp1_scale", 
+                             fixed_value = median(test$comp1_scale, na.rm = TRUE),
+                             x_label = "Component 2", y_label = "Component 3")
+
+# Arrange the plots in a grid
+grid.arrange(p1, p2, p3, ncol = 2)
+
+
+plot_decision_boundary(data = dta_scirep_all_wd_by_vid_pos,
+                       model = mod_emoperc_nmf_spk_no_oth,
+                             comp_x = "comp1_scale", comp_y = "comp2_scale", 
+                             fixed_comp = "comp3_scale", 
+                             fixed_value = median(dta_scirep_all_wd_by_vid_pos$comp3_scale, na.rm = TRUE),
+                             x_label = "Component 1", y_label = "Component 2")
+
+# For comp1 vs comp3, hold comp2 constant at its median value:
+plot_decision_boundary(data = dta_scirep_all_wd_by_vid_pos, model = mod_emoperc_nmf_spk_no_oth,
+                             comp_x = "comp1_scale", comp_y = "comp3_scale", 
+                             fixed_comp = "comp2_scale", 
+                             fixed_value = median(dta_scirep_all_wd_by_vid_pos$comp2_scale, na.rm = TRUE),
+                             x_label = "Component 1", y_label = "Component 3")
+
+# For comp2 vs comp3, hold comp1 constant at its median value:
+ plot_decision_boundary(data = dta_scirep_all_wd_by_vid_pos, model = mod_emoperc_nmf_spk_no_oth,
+                             comp_x = "comp2_scale", comp_y = "comp3_scale", 
+                             fixed_comp = "comp1_scale", 
+                             fixed_value = median(dta_scirep_all_wd_by_vid_pos$comp1_scale, na.rm = TRUE),
+                             x_label = "Component 2", y_label = "Component 3")
+
+                          
+                          
+ 
 
 ```
 
@@ -1095,6 +1430,7 @@ mod_emoperc_nmf2$pred%>%
   ggplot(aes(factor(Resample), accuracy))+
   geom_point()+
   geom_hline(yintercept = 0.4554)+
+  geom_bar(stat = "identity", width = .1)+
   labs(title = "Accuracy by Left-Out Participant (Fold)",
        x = "Fold (Left-Out Participant)",
        y = "Accuracy") +
@@ -1197,6 +1533,7 @@ mod_emoperc_nmf2_n_oth_pred_dta%>%
   ggplot(aes(factor(Resample), accuracy))+
   geom_point()+
   geom_hline(yintercept = 0.5491)+
+  geom_bar(stat = "identity", width = .1)+
   labs(title = "Accuracy by Left-Out Participant (Fold)",
        x = "Fold (Left-Out Participant)",
        y = "Accuracy") +
@@ -1274,7 +1611,11 @@ mod_emoperc_nmf2_pos_pred_dta%>%
   summarise(accuracy = mean(pred == obs))%>%
   ggplot(aes(factor(Resample), accuracy))+
   geom_point()+
-  geom_hline(yintercept = 0.4554)+
+  # geom_hline(yintercept = 0.4554)+
+  
+  geom_hline(yintercept = 0.4554, colour = "red", linetype = "dashed")+
+  geom_hline(yintercept = .33, colour = "pink", linetype = "dashed")+
+  geom_bar(stat = "identity", width = .1)+
   labs(title = "Accuracy by Left-Out Participant (Fold)",
        x = "Fold (Left-Out Participant)",
        y = "Accuracy") +
@@ -1283,17 +1624,17 @@ mod_emoperc_nmf2_pos_pred_dta%>%
 
 
 
-as.data.frame(confusionMatrix(mod_emoperc_nmf2_pos_pred_dta$pred, 
-                              mod_emoperc_nmf2_pos_pred_dta$obs)$table)%>%
-
-ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = Freq), color = "black", size = 4) +
-  scale_fill_gradient(low = "white", high = "steelblue") +
-  labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
-       x = "True Label",
-       y = "Predicted Label") +
-  theme_minimal()
+# as.data.frame(confusionMatrix(mod_emoperc_nmf2_pos_pred_dta$pred, 
+#                               mod_emoperc_nmf2_pos_pred_dta$obs)$table)%>%
+# 
+# ggplot(aes(x = Reference, y = Prediction, fill = Freq)) +
+#   geom_tile(color = "white") +
+#   geom_text(aes(label = Freq), color = "black", size = 4) +
+#   scale_fill_gradient(low = "white", high = "steelblue") +
+#   labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
+#        x = "True Label",
+#        y = "Predicted Label") +
+#   theme_minimal()
 
 
 
@@ -1330,34 +1671,43 @@ confusionMatrix(mod_emoperc_nmf2_pos_no_oth_pred_dta$pred, mod_emoperc_nmf2_pos_
 
 
 # 0.5492 NIR
+reviews$loo_pos_cv_acc<-
 
 mod_emoperc_nmf2_pos_no_oth_pred_dta%>%
   group_by(Resample) %>%
   summarise(accuracy = mean(pred == obs))%>%
-  ggplot(aes(factor(Resample), accuracy))+
-  geom_point()+
-  geom_hline(yintercept = 0.5492)+
+  ggplot(aes(factor(as.numeric(factor(Resample))), accuracy))+
+  geom_point(size = 1.5)+
+    geom_bar(stat = "identity", width = .2)+
+  # geom_hline(yintercept = 0.5492)+
+   geom_hline(yintercept = 0.5492, colour = "red", linetype = "dashed",size = 1)+
+  geom_hline(yintercept = .33, colour = "pink", linetype = "dotted",size = 1)+
+
   labs(title = "Accuracy by Left-Out Participant (Fold)",
        x = "Fold (Left-Out Participant)",
        y = "Accuracy") +
-  theme_minimal()
+  theme_minimal()+
+    ylim(0,.85)+
+  ggtitle("expression only")+
+  p$graphstyle_int+
+    theme(axis.text.x = element_text(size = 6))
 
 
+reviews$loo_pos_cv_acc
 
-
-as.data.frame(confusionMatrix(mod_emoperc_nmf2_pos_no_oth_pred_dta$pred, 
-                              mod_emoperc_nmf2_pos_no_oth_pred_dta$obs)$table)%>%
-  group_by(Reference)%>%
-  mutate(prop = Freq/sum(Freq))%>%
-
-ggplot(aes(x = Reference, y = Prediction, fill = prop)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = prop), color = "black", size = 4) +
-  scale_fill_gradient(low = "white", high = "steelblue") +
-  labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
-       x = "True Label",
-       y = "Predicted Label") +
-  theme_minimal()
+# as.data.frame(confusionMatrix(mod_emoperc_nmf2_pos_no_oth_pred_dta$pred, 
+#                               mod_emoperc_nmf2_pos_no_oth_pred_dta$obs)$table)%>%
+#   group_by(Reference)%>%
+#   mutate(prop = Freq/sum(Freq))%>%
+# 
+# ggplot(aes(x = Reference, y = Prediction, fill = prop)) +
+#   geom_tile(color = "white") +
+#   geom_text(aes(label = prop), color = "black", size = 4) +
+#   scale_fill_gradient(low = "white", high = "steelblue") +
+#   labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
+#        x = "True Label",
+#        y = "Predicted Label") +
+#   theme_minimal()
 
 
 
@@ -1413,7 +1763,9 @@ mod_emoperc_nmf2_spk_pred_dta%>%
   summarise(accuracy = mean(pred == obs))%>%
   ggplot(aes(factor(Resample), accuracy))+
   geom_point()+
-  geom_hline(yintercept = 0.4554)+
+  geom_bar(stat = "identity", width = .1)+
+  geom_hline(yintercept = 0.4554, colour = "red", linetype = "dashed")+
+  geom_hline(yintercept = .33, colour = "pink", linetype = "dashed")+
   labs(title = "Accuracy by Left-Out Participant (Fold)",
        x = "Fold (Left-Out Participant)",
        y = "Accuracy") +
@@ -1422,18 +1774,18 @@ mod_emoperc_nmf2_spk_pred_dta%>%
 
 
 
-as.data.frame(confusionMatrix(mod_emoperc_nmf2_spk_pred_dta$pred, 
-                              mod_emoperc_nmf2_spk_pred_dta$obs)$table)%>%
-  group_by(Reference)%>%
-  mutate(prop = Freq/sum(Freq))%>%
-ggplot(aes(x = Reference, y = Prediction, fill = prop )) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = prop), color = "black", size = 4) +
-  scale_fill_gradient(low = "white", high = "steelblue") +
-  labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
-       x = "True Label",
-       y = "Predicted Label") +
-  theme_minimal()
+# as.data.frame(confusionMatrix(mod_emoperc_nmf2_spk_pred_dta$pred, 
+#                               mod_emoperc_nmf2_spk_pred_dta$obs)$table)%>%
+#   group_by(Reference)%>%
+#   mutate(prop = Freq/sum(Freq))%>%
+# ggplot(aes(x = Reference, y = Prediction, fill = prop )) +
+#   geom_tile(color = "white") +
+#   geom_text(aes(label = prop), color = "black", size = 4) +
+#   scale_fill_gradient(low = "white", high = "steelblue") +
+#   labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
+#        x = "True Label",
+#        y = "Predicted Label") +
+#   theme_minimal()
 
 
 ```
@@ -1466,36 +1818,70 @@ confusionMatrix(mod_emoperc_nmf2_spk_no_oth_pred_dta$pred, mod_emoperc_nmf2_spk_
 
 # 0.5492 NIR
 
+reviews$loo_spk_cv_acc<-
 mod_emoperc_nmf2_spk_no_oth_pred_dta%>%
   group_by(Resample) %>%
   summarise(accuracy = mean(pred == obs))%>%
-  ggplot(aes(factor(Resample), accuracy))+
-  geom_point()+
-  geom_hline(yintercept = 0.5492)+
+    ggplot(aes(factor(as.numeric(factor(Resample))), accuracy))+
+  geom_point(size = 1.5)+
+  # geom_hline(yintercept = 0.5492)+
+      geom_bar(stat = "identity", width = .2)+
+    geom_hline(yintercept = 0.549, colour = "red", linetype = "dashed",size = 1)+
+
+    geom_hline(yintercept = .33, colour = "pink", linetype = "dotted",size = 1)+
+  
   labs(title = "Accuracy by Left-Out Participant (Fold)",
        x = "Fold (Left-Out Participant)",
        y = "Accuracy") +
-  theme_minimal()
+  ggtitle("emotive speech")+
+  theme_minimal()+
+  ylim(0,.85)+
+  p$graphstyle_int+
+  theme(axis.title.y = element_blank(),axis.text.x = element_text(size = 6))
 
 
 
+reviews$loo_pos_spk_cv_acc <- reviews$loo_pos_cv_acc| reviews$loo_spk_cv_acc
 
-as.data.frame(confusionMatrix(mod_emoperc_nmf2_spk_no_oth_pred_dta$pred, 
-                              mod_emoperc_nmf2_spk_no_oth_pred_dta$obs)$table)%>%
-  group_by(Reference)%>%
-  mutate(prop = Freq/sum(Freq))%>%
+reviews$loo_pos_spk_cv_acc
 
-ggplot(aes(x = Reference, y = Prediction, fill = prop)) +
-  geom_tile(color = "white") +
-  geom_text(aes(label = prop), color = "black", size = 4) +
-  scale_fill_gradient(low = "white", high = "steelblue") +
-  labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
-       x = "True Label",
-       y = "Predicted Label") +
-  theme_minimal()
+ggsave("sm_loo_pos_spk_cv_acc.tiff",
+       device = 'tiff', reviews$loo_pos_spk_cv_acc,,
+       width = 13,
+       height = 4,
+       dpi = 300,
+       compression = "lzw")
 
 
+# as.data.frame(confusionMatrix(mod_emoperc_nmf2_spk_no_oth_pred_dta$pred, 
+#                               mod_emoperc_nmf2_spk_no_oth_pred_dta$obs)$table)%>%
+#   group_by(Reference)%>%
+#   mutate(prop = Freq/sum(Freq))%>%
+# 
+# ggplot(aes(x = Reference, y = Prediction, fill = prop)) +
+#   geom_tile(color = "white") +
+#   geom_text(aes(label = prop), color = "black", size = 4) +
+#   scale_fill_gradient(low = "white", high = "steelblue") +
+#   labs(title = "Confusion Matrix (Leave-One-Participant-Out)",
+#        x = "True Label",
+#        y = "Predicted Label") +
+#   theme_minimal()
 
+
+
+```
+
+
+fetures
+```{r}
+# dta_rslt_spk_cmfts <- readRDS("~Data/ExportedData/Processeddata/dta_rslt_spk_cmfts.rds")
+
+dta_rslt_spk_cmfts
+
+
+colnames(dta_rslt_spk_cmfts)
+
+dta_rslt_spk_cmfts[,1:38]
 ```
 
 to do

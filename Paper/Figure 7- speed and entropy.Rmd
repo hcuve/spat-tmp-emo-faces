@@ -169,10 +169,16 @@ plts_substate_entropy_trans
 ```
 
 
-
+export figs revision
 ```{r}
-ggsave("plts_substate_entropy.tiff", plts_substate_entropy, device = "tiff",
-       width = 14, height = 14, dpi = 800)
+ggsave("fig_6_plts_substate_entropy.tiff", plts_substate_entropy, device = "tiff",
+       width = 14, height = 14, dpi = 300)
+
+ggsave("fig_6_plts_substate_entropy.jpg", plts_substate_entropy, device = "jpg",
+       width = 14, height = 14, dpi = 300)
+
+ggsave("fig_6_plts_substate_entropy.pdf", plts_substate_entropy, device = "pdf",
+       width = 14, height = 14, dpi = 300)
 
 
 ```
@@ -180,6 +186,11 @@ ggsave("plts_substate_entropy.tiff", plts_substate_entropy, device = "tiff",
 
 
 ```{r}
+require(tidyverse)
+
+require(ggside)
+require(ggExtra)
+
 ((plts_substate_speed_avg/
 plts_substate_freq)|(guide_area() +
 plts_substate_entropy))+
@@ -227,13 +238,14 @@ paper_plots$Fig7_speed_entropy<-
    plot_layout(guides = "collect", nrow = 1, widths = c(1.5,.5))& theme(legend.position = "top")
 paper_plots$Fig7_speed_entropy
 
+# sci rep revisions export
 
-ggsave("Fig7_speed_entropy.png", paper_plots$Fig7_speed_entropy, device = "png",
-       width = 12, height = 5, dpi = 800)
-ggsave("Fig7_speed_entropy.tiff", paper_plots$Fig7_speed_entropy, device = "tiff",
-       width = 12, height = 5, dpi = 800)
-ggsave("Fig7_speed_entropy.pdf", paper_plots$Fig7_speed_entropy, device = "pdf",
-       width = 10, height = 5, dpi = 800)
+ggsave("Fig6_speed_entropy.png", paper_plots$Fig7_speed_entropy, device = "png",
+       width = 12, height = 5, dpi = 300)
+ggsave("Fig6_speed_entropy.tiff", paper_plots$Fig7_speed_entropy, device = "tiff",
+       width = 12, height = 5, dpi = 300,    compression = "lzw")
+ggsave("Fig6_speed_entropy.pdf", paper_plots$Fig7_speed_entropy, device = "pdf",
+       width = 10, height = 5, dpi = 300)
 
 
 ```

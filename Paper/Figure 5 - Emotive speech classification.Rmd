@@ -480,15 +480,38 @@ paper_plots$panel_spoken_fig5_ggside
 
 setwd(paths$export_figures)
 
-ggsave("panel_spoken_fig5_ggsidenew.tiff",  paper_plots$panel_spoken_fig5_ggside,
+
+# export for revisions - scirep
+ggsave("fig4_panel_spoken_ggsidenew.tiff",  paper_plots$panel_spoken_fig5_ggside,
        device = "tiff",
        width = 17,
        # 
        height = 10,
-       dpi = 800
-       )
+       dpi = 300,
+       compression = "lzw")
 
 
+ggsave("fig4_panel_spoken_ggsidenew.jpg",  
+       paper_plots$panel_spoken_fig5_ggside,
+       device = "jpg",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 300)
+
+ggsave("fig4_panel_spoken_ggsidenew.pdf",  
+       paper_plots$panel_spoken_fig5_ggside,
+       device = "pdf",
+       width = 17,
+       # 
+       height = 10,
+       dpi = 300)
+
+```
+
+
+
+```{r}
 ggsave("panel_spoken_fig5_ggsidenew.png",  paper_plots$panel_spoken_fig5_ggside,
        device = "png",
        width = 17,

@@ -225,21 +225,46 @@ patch work it
 plts_substate_illustration_hm <- ((((plts_substate_posed+ plts_substate_spoken)+plot_annotation(title = "sample expressions"))+   plot_layout(guides = "collect") & theme(legend.position = "top"))/ 
   
   ((plts_substate_posed_HM+plts_substate_spok_HM) + plot_layout(nrow = 2) & theme(legend.position = "top", legend.title.position = "top")))+
-  plot_layout(heights = c(1,2))+plot_annotation(tag_levels = 'A') 
+  plot_layout(heights = c(1,2))+plot_annotation(tag_levels = 'a') 
 
 plts_substate_illustration_hm
 
 # on directoty ~ Data/ExportedFigures"
 
 # Use ggsave with the full path
+# sci rep revisions
 ggsave(
-  filename = file.path(paths$export_figs, "fig_6_plts_substate_illustration_hm.tiff"),
+  # filename = file.path(paths$export_figs, "fig_5_plts_substate_illustration_hm.tiff"),
+  "fig_5_plts_substate_illustration_hm.tiff",
   plot = plts_substate_illustration_hm,
   device = "tiff",
   width = 14,
   height = 14,
-  dpi = 800
-)
+  dpi = 300,
+    compression = "lzw")
+
+
+ggsave(
+  "fig_5_plts_substate_illustration_hm.jpg",
+  plot = plts_substate_illustration_hm,
+  device = "jpg",
+  width = 14,
+  height = 14,
+  dpi = 300)
+
+
+ggsave(
+  "fig_5_plts_substate_illustration_hm.pdf",
+  plot = plts_substate_illustration_hm,
+  device = "pdf",
+  width = 14,
+  height = 14,
+  dpi = 300)
+
+
+
+```
+
 
 
 ggsave(

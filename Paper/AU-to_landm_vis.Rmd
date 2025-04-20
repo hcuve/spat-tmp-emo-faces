@@ -322,7 +322,7 @@ maxnormalize <- function(x, ...) {
 head(dta_4_plfs)
 ```
 
-this (up) doesn quite align but we can take the data from here
+this (up) doesn't quite align but we can take the data from here
 ```{r}
 tmp_test<- dta_all_aligned_landmarks_posed_corrected%>%
   # # subset(as.numeric(as.factor(filename)) == 2)%>%
@@ -831,6 +831,13 @@ saveRDS(tmp_eye_align_data_combined,
                  file.path(paths$au_to_land, 
                   "dta_pos_aligned_to_nt_and_eye.rds"))
 
+unique(tmp_eye_align_data_combined$filename)
+tmp_eye_align_data_combined%>%
+  group_by(filename,land_id)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  ggplot(aes(x_norm,y_norm))+
+  geom_point()
+
 ```
 
 
@@ -908,6 +915,8 @@ tmp_eye_align_data_combined_norm_01_wide_AUS<- left_join(tmp_eye_align_data_comb
 ```{r}
 colnames(tmp_eye_align_data_combined_norm_01_wide_AUS)
 
+tmp_eye_align_data_combined_norm_01_wide
+
 
 col_names<- colnames(tmp_eye_align_data_combined_norm_01_wide_AUS)
 col_names_sub<- gsub("norm_", "",col_names)
@@ -932,6 +941,8 @@ y_landmarks <- tmp_eye_align_data_combined_norm_01_wide_AUS[, y_landmark_cols]
 # first by half by combining consecutive frames
 colnames(tmp_eye_align_data_combined_norm_01_wide_AUS)
 nrow(tmp_eye_align_data_combined_norm_01_wide_AUS)
+
+
 dta_eye_align_combined_norm_01_wide_AUS<- tmp_eye_align_data_combined_norm_01_wide_AUS[,1:155]
 
 colnames(dta_eye_align_combined_norm_01_wide_AUS)
@@ -956,6 +967,7 @@ dta_posed_reconstr_all_df$frame<- df_OF_output_AUsW_unblind_posed_binned$frame
 
 
 ```{r}
+tmp_eye_align_data_combined_norm_01_wide
 # l;andmark and original AUS
 dta_eye_align_combined_norm_01_wide_AUS_norm<- dta_eye_align_combined_norm_01_wide_AUS%>%
   group_by(filename)%>%
@@ -978,7 +990,7 @@ dta_posed_reconstr_all_df$filename<- gsub("./", "", dta_posed_reconstr_all_df$fi
 
 dta_posed_reconstr_all_df$filename<- gsub(".csv", "", dta_posed_reconstr_all_df$filename)
 
-
+tmp_eye_align_data_combined_norm_01_wide_AUS
 dta_eye_align_combined_norm_01_wide_AUS_reconstr<- left_join(dta_eye_align_combined_norm_01_wide_AUS[,1:138],
           dta_posed_reconstr_all_df)
 
@@ -1085,15 +1097,59 @@ landmark_columns <- c(x_landmark_cols, y_landmark_cols)  # Combine x and y for t
 # Fit the PLS model with 20 components
 # pls::pls.options()
 library(pls)
+
 mod_pls <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
                   data = dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th,
                   ncomp = 17,
                   scale = FALSE,  # Standardize variables
                   validation = "CV")
+colnames(dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th)
+
+range(dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th$AU26_r_Jaw_drop)
+
+mod_pls_test <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
+                  data = dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th,
+                  ncomp = 17,
+                  scale = FALSE,  # Standardize variables
+                  validation = "CV")
+
+# FOR VISUALISATIONS, MIGHTH BE BETTER TO TRAIN THIS SEPARATELLY PER EMOTION/EXPRESSIONH
+dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th$filename
+unique(dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th$filename)
+
+mod_pls_ang <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
+                  data = dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th%>%
+                    subset(grepl("angry", filename)),
+                  ncomp = 17,
+                  scale = FALSE,  # Standardize variables
+                  validation = "CV")
+
+
+mod_pls_sad <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
+                  data = dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th%>%
+                    subset(grepl("sad", filename)),
+                  ncomp = 17,
+                  scale = FALSE,  # Standardize variables
+                  validation = "CV")
+
+mod_pls_hap <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
+                  data = dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th%>%
+                    subset(grepl("happy", filename)),
+                  ncomp = 17,
+                  scale = FALSE,  # Standardize variables
+                  validation = "CV")
+```
+
+
+
+```{R}
+
+as.data.frame(mod_pls_test$model)
 
 
 as.data.frame(mod_pls$model)
-
+mod_pls_test
+mod_pls_test$model
 as.data.frame(mod_pls$loadings)
 as.data.frame(mod_pls$coefficients)
 
@@ -1112,11 +1168,32 @@ saveRDS(dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs_10th,
           file.path(paths$au_to_land, 
                     "dta_pos4_au_to_land_pls.rds"))
 
+
+
+range(dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs_10th$AU26_r_Jaw_drop)
 mod_pls_nmfaus_posed <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
                   data = dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs_10th,
                   ncomp = 17,
                   scale = FALSE,  # Standardize variables
                   validation = "CV")
+
+
+colnames(dta_eye_align_combined_norm_01_wide_AUS_reconstr_norm_downs_10th)
+
+dta_all_aligned_landmarks_posed_corrected_AUS_norm_downs_10th[,1:138]%>%
+  pivot_longer(
+    cols = matches("^[xy]_"), 
+    names_to = c(".value", "id"),
+    names_pattern = "([xy])_(\\d+)"
+  ) %>%
+  mutate(id = as.integer(id))%>%
+  group_by(filename,id)%>%
+  summarise_if(is.numeric,mean, na.rm = T)%>%
+  ggplot(aes(x,y))+
+  geom_point()
+
+```
+
 
 saveRDS(mod_pls_nmfaus_posed,
           file.path(paths$au_to_land, 
@@ -1137,7 +1214,7 @@ mod_pls$loading.weights
 mod_pls$loadings
 
 mod_pls$projection
-```
+
 
 Quick plot original vs prediction
 
@@ -3058,6 +3135,35 @@ mod_pls_spoken <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collap
                   validation = "CV")
 
 
+mod_pls_spoken_an <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
+                  data = dta_spk_eye_align_combined_norm_01_wide_AUS_norm_downs_10th%>%
+                     subset(grepl("angry", filename)),
+                  
+                  ncomp = 17,
+                  scale = FALSE,  # Standardize variables
+                  validation = "CV")
+
+
+mod_pls_spoken_sad <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
+                  data = dta_spk_eye_align_combined_norm_01_wide_AUS_norm_downs_10th%>%
+                     subset(grepl("sad", filename)),
+                  
+                  ncomp = 17,
+                  scale = FALSE,  # Standardize variables
+                  validation = "CV")
+
+
+mod_pls_spoken_hap <- plsr(as.formula(paste("cbind(", paste(landmark_columns, collapse = ", "), ") ~ ", paste(au_columns, collapse = " + "))),
+                  data = dta_spk_eye_align_combined_norm_01_wide_AUS_norm_downs_10th%>%
+                     subset(grepl("happy", filename)),
+                  
+                  ncomp = 17,
+                  scale = FALSE,  # Standardize variables
+                  validation = "CV")
+
+
+
+
 
 
 # summary(mod_pls)
@@ -3131,7 +3237,7 @@ as.data.frame(tmp_pred) %>%
 
 
 
-spoken graphs from sooken pls mopdel
+spoken graphs from spoken pls mopdel
 
 ```{r}
 predicted_spoken1_landmarks_sok_pls <- predict(mod_pls_spoken, dta_reconstr_spoken1_combined_agg1_0, ncomp = 17)

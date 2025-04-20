@@ -58,11 +58,11 @@ paper_plots$spoken_NMF_hm
 # setwd("...git/halo_faces/ggtextimgs")
 
 labels_spoken <- c(
-  `2` = "<img src='https://raw.githubusercontent.com/hcuve/halo_faces/main/ggtextimgs/comp1_spoken.png'
+  `2` = "<img src='https://raw.githubusercontent.com/hcuve/spat-tmp-emo-faces/main/ggtextimgs/comp1_spoken.png'
     width='100' /><br> 2",
-  `1` = "<img src='https://raw.githubusercontent.com/hcuve/halo_faces/main/ggtextimgs/comp2_spoken.png'
+  `1` = "<img src='https://raw.githubusercontent.com/hcuve/spat-tmp-emo-faces/main/ggtextimgs/comp2_spoken.png'
     width='100' /><br> 1",
-  `3` = "<img src='https://raw.githubusercontent.com/hcuve/halo_faces/main/ggtextimgs/comp3_spoken.png'
+  `3` = "<img src='https://raw.githubusercontent.com/hcuve/spat-tmp-emo-faces/main/ggtextimgs/comp3_spoken.png'
     width='100' /><br> 3"
 )
 # ggtext::
@@ -155,6 +155,7 @@ time series and heatmap timeseries across emotions
 
 ```{r}
 colnames(spoken_NMF)
+
 paper_plots$spoken_ts_across_exp <-
 
 
@@ -235,7 +236,7 @@ paper_plots$spoken_ts_across_exp <-
    paper_plots$spoken_NMF_ts_hm_across 
    
    
-   
+   require(patchwork)
 spoken_ts_ts_hm_compns<- (   paper_plots$spoken_ts_across_exp/ paper_plots$spoken_NMF_ts_hm_across )
 
 spoken_ts_ts_hm_compns
@@ -317,6 +318,7 @@ emotion triangles spoken
  
 ```{r}
 plot_dell_spoken
+
 plot_dell_spoken$spok_angry_light<- plot_dell_spoken$spok_angry +
   
   theme_void()+
@@ -377,6 +379,7 @@ spoken_part1plot <- (wrap_elements(full = paper_plots$spoken_NMF_hm)+
   # theme(plot.tag = element_text(size = 20*(sf+.5)))
  
  spoken_part1plot
+ 
 
 spoken_part2plot <-(paper_plots$spoken_NMF /
            patchwork::wrap_elements(triang_patch_spoken)/
@@ -402,7 +405,7 @@ paper_plots$panel_NMF_spoken_no_neutr<-
 (wrap_elements(full = spoken_part1plot) / 
   wrap_elements(full = spoken_part2plot)) + 
    plot_layout(ncol = 1, nrow = 2, heights = c(1,1))+
-   plot_annotation(tag_levels = 'A')
+   plot_annotation(tag_levels = 'a')
 
 
 # do this separately to avoid different size tags
@@ -418,12 +421,36 @@ paper_plots$panel_NMF_spoken_no_neutr
 
 
 setwd(paths$export_figures)
-ggsave("panel_NMF_spoken_no_ntr_300dpi.tiff",
+
+# export for revisions
+       # compression = "lzw")
+ggsave("Fig3_panel_NMF_spoken_no_ntr_300dpi.tiff",
        device = 'tiff',    
        paper_plots$panel_NMF_spoken_no_neutr,
        width = 25,
        height = 25,
+       dpi = 300,
+       compression = "lzw")
+
+ggsave("Fig3_panel_NMF_spoken_no_ntr_300dpi.jpg",
+       device = 'jpg',    
+       paper_plots$panel_NMF_spoken_no_neutr,
+       width = 25,
+       height = 25,
        dpi = 300)
+
+ggsave("Fig3_panel_NMF_spoken_no_ntr_300dpi.pdf",
+       device = 'pdf',    
+       paper_plots$panel_NMF_spoken_no_neutr,
+       width = 25,
+       height = 25,
+       dpi = 300)
+
+
+```
+
+
+```{r}
 
 
 ggsave("panel_NMF_spoken_no_ntr_300dpi.png",

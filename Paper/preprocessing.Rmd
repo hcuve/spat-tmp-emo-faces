@@ -362,32 +362,69 @@ colnames(df_OF_output_AUsW_unblind_posed_binned)
 df_OF_output_AUsW_unblind_posed_binned$filename
 # "./cut_posed_angry_day1_p1.csv"
 colnames(df_OF_output_AUsW_unblind_posed_binned)
-df_OF_output_AUsW_unblind_posed_binned%>%
-  subset(filename == "./cut_posed_angry_day1_p1.csv")%>%
+
+
+sm_2<-list()
+
+sm_2$emot_only_downs_eg<-
+df_OF_output_AUsW_unblind_posed_binned[,1:32]%>%
+  subset(filename == "./cut_posed_happy_day2_p25.csv")%>%
+  # subset(posed.spoken == "posed")%>%
     gather(AUs, AU.coefs, -(1:15))%>%
+
+  
   group_by(bin_frame, AUs,expression)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+  
+      group_by(AUs)%>%
+  mutate(AU.coefs = normalize_0_1(AU.coefs))%>%
+
   # subset(drug.placebo == "drug")%>%
     ggplot(aes(as.numeric(bin_frame), AUs, fill = AU.coefs))+
     geom_tile()+
+    ggtitle("expression only - downsampled")+
+     xlab("bin frame ")+
     # facet_grid(posed.spoken~expression)+
-    theme_classic()+
+   p$graphstyle_int+
   theme(axis.text.y = element_blank())+
+  
   scale_fill_viridis_c(option = "magma")
 
 # unbinned
+# library(data.table)
+# colnames(df_OF_output_AUsW_unblind_posed)
+
+sm_2$emot_only_fullsamp_eg<-
 df_OF_output_AUsW_unblind_posed%>%
-  subset(filename == "./cut_posed_angry_day1_p1.csv")%>%
+  subset(filename == "./cut_posed_happy_day2_p25.csv")%>%
     gather(AUs, AU.coefs, -(1:15))%>%
+
   group_by(frame, AUs,expression)%>%
+  
   summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+   group_by(AUs)%>%
+  mutate(AU.coefs = normalize_0_1(AU.coefs))%>%
+  
   # subset(drug.placebo == "drug")%>%
     ggplot(aes(as.numeric(frame), AUs, fill = AU.coefs))+
     geom_tile()+
+     xlab("frame (24 fps)")+
     # facet_grid(posed.spoken~expression)+
-    theme_classic()+
-  theme(axis.text.y = element_blank())+
+  ggtitle("expression only - full samples")+
+   p$graphstyle_int+
+  # theme(axis.text.y = element_blank())+
   scale_fill_viridis_c(option = "magma")
+
+
+
+
+```
+
+
+
+
+
+```{r}
 
 
 # similar
@@ -507,34 +544,81 @@ df_OF_output_AUsW_unblind_spoken1_2_binned$filename
 # "./cut_spoken_angry_day1_p19.csv"
 colnames(df_OF_output_AUsW_unblind_spoken1_2_binned)
 
+
+
+```
+
+
+```{r}
+
 # quick visualisation of how the bins would be
-df_OF_output_AUsW_unblind_spoken1_2_binned%>%
-  subset(filename == "./cut_spoken_angry_day1_p19.csv")%>%
+colnames(df_OF_output_AUsW_unblind_spoken1_2_binned)
+
+df_OF_output_AUsW_unblind_spoken1_2_binned$filename
+unique(df_OF_output_AUsW_unblind_spoken1_2_binned$filename)
+sm_2$emotiv_speech_only_downs_eg<-
+df_OF_output_AUsW_unblind_spoken1_2_binned[,1:33]%>%
+    select(-success)%>%
+   subset(filename == "./cut_spoken_sad_day1_p28.csv")%>%
     gather(AUs, AU.coefs, -(1:15))%>%
   group_by(bin_frame, AUs,expression)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+   group_by(AUs)%>%
+  mutate(AU.coefs = normalize_0_1(AU.coefs))%>%
+  
   # subset(drug.placebo == "drug")%>%
     ggplot(aes(as.numeric(bin_frame), AUs, fill = AU.coefs))+
     geom_tile()+
+   xlab("bin frame ")+
     # facet_grid(posed.spoken~expression)+
-    theme_classic()+
+    ggtitle("emotive speech - downsampled")+
+    # facet_grid(posed.spoken~expression)+
+   p$graphstyle_int+
   theme(axis.text.y = element_blank())+
   scale_fill_viridis_c(option = "magma")
 
-
+sm_2$emotiv_speech_only_downs_eg
 # unbined for comparison
+  # colnames(df_OF_output_AUsW_unblind_spoken1_2)
+
+sm_2$emotiv_speech_fullsamp_eg<- 
 df_OF_output_AUsW_unblind_spoken1_2%>%
-  subset(filename == "./cut_spoken_angry_day1_p19.csv")%>%
+   subset(filename == "./cut_spoken_sad_day1_p28.csv")%>%
+  # select(-success)%>%
     gather(AUs, AU.coefs, -(1:15))%>%
+
   group_by(frame, AUs,expression)%>%
   summarise_if(is.numeric, mean, na.rm = TRUE)%>%
+  group_by(AUs)%>%
+  mutate(AU.coefs = normalize_0_1(AU.coefs))%>%
+  
   # subset(drug.placebo == "drug")%>%
     ggplot(aes(as.numeric(frame), AUs, fill = AU.coefs))+
     geom_tile()+
     # facet_grid(posed.spoken~expression)+
-    theme_classic()+
-  theme(axis.text.y = element_blank())+
+  ggtitle("emotive speech- full samples")+
+  xlab("frame (24 fps)")+
+   p$graphstyle_int+
+  # theme(axis.text.y = element_blank())+
   scale_fill_viridis_c(option = "magma")
+
+sm_2$emotiv_speech_fullsamp_eg
+
+# require(patchwork)
+
+sm_2$downsam_examp<- (sm_2$emot_only_fullsamp_eg+sm_2$emot_only_downs_eg)/
+(sm_2$emotiv_speech_fullsamp_eg+sm_2$emotiv_speech_only_downs_eg)+
+  plot_layout(guides = "collect")
+
+sm_2$downsam_examp
+
+# note guides at thw top cause issues
+ggsave("sm_sdownsam_examp.tiff",
+       device = 'tiff', sm_2$downsam_examp,
+       width = 18,
+       height = 12,
+       dpi = 300,
+       compression = "lzw")
 
 
 # very similar, so we can be confident that the binification is not screwing things up

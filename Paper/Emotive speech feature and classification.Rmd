@@ -124,7 +124,7 @@ colnames(df_OF_output_AUsW_unblind_spoken1_binned_train)
 saveRDS(df_OF_output_AUsW_unblind_spoken1_binned_train[,select_au_and_id_cols],
         file.path(paths$export_data, 
                   "dta_spk_4nmf_train.rds"))
-saveRDS(df_OF_output_AUsW_unblind_spoken1_binned_train[,select_au_and_id_cols],
+saveRDS(df_OF_output_AUsW_unblind_spoken1_binned_test[,select_au_and_id_cols],
         file.path(paths$export_data, 
                   "dta_spk_4nmf_test.rds"))
 
