@@ -1,0 +1,435 @@
+---
+title: "Untitled"
+author: "Helio"
+date: "2025-07-10"
+output: html_document
+---
+
+
+
+# Load behavioral data
+
+this is data from participants rating the test set for emotion
+
+# rejections
+
+No video face detected in front of the computer
+
+63e6378e04ade071ebf9ff9c
+
+```{r}
+
+library(readr)
+dta_scirep_grl <- read_csv("data_exp_220644-v4_task-62d6.csv")
+
+library(readr)
+# dta_scirep_grl_h <- read_csv("data-task-62d6_H.csv")
+dta_scirep_grll<- dta_scirep_grl%>%
+  janitor::clean_names()%>%
+  bind_rows(dta_scirep_grl_h%>%janitor::clean_names())
+
+
+unqiue(dta_scirep_grl_s1$participant_private_id)
+dta_scirep_grl_s1<-dta_scirep_grll
+
+# prolific data
+library(readr)
+dta_scirep_all <- read_csv("data_exp_220644-v6_task-62d6.csv")
+View(dta_scirep_all)
+
+
+
+dta_scirep_all<- dta_scirep_all%>%
+  janitor::clean_names()%>%
+  bind_rows(dta_scirep_grll%>%janitor::clean_names())
+dta_scirep_grll
+
+
+unique(dta_scirep_all$participant_private_id)
+
+dta_scirep_all<-dta_scirep_all%>%
+  subset(participant_private_id!= "13017685")%>%
+  subset(!is.na(participant_private_id))
+
+
+# select necessary columns and rows (e.g. trial, no practice)
+
+unique(dta_scirep_all$task_version)
+unique(dta_scirep_all$participant_private_id)
+
+
+dta_scirep_all2<- dta_scirep_all%>%
+  select(
+    #participant_device_type,
+         participant_public_id,
+         participant_private_id,
+          starts_with("spreadsheet"),
+         trial_number,
+         component_name,
+         object_name,
+         response)%>%
+subset(grepl("Trial",spreadsheet_display))%>%
+subset(grepl("Slider",component_name))%>%
+  subset(!is.na(response))%>%
+  mutate(response = as.numeric(response))
+
+colnames(dta_scirep_all2)
+
+names(dta_scirep_all2)<- str_remove(colnames(dta_scirep_all2), "spreadsheet_")
+colnames(dta_scirep_all2)
+
+# quick plots of emotion rating
+dta_scirep_all2%>%
+  #subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
+  group_by(participant_private_id,expression, object_name, posed_spoken)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  mutate(response = if_else(object_name == "other_emotion" & response> 75,NA,response))%>%
+  #subset(object_name!= "other_emotion")%>%
+  group_by(expression, posed_spoken)%>%
+  mutate(response = scale(response))%>%
+  ggplot(aes(expression, response, 
+             colour  = object_name,
+             shape = object_name))+
+  #geom_boxplot(aes(colour = object_name),  width = .1, position = position_dodge(1))+
+  geom_point(aes(group = object_name), position = position_dodge(1), alpha = .1)+
+    stat_summary(geom = "pointrange",position = position_dodge(1))+
+  facet_grid(~posed_spoken)
+
+# quick plots of emotion rating
+dta_scirep_all2%>%
+  #subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
+  group_by(participant_private_id,expression, object_name, posed_spoken)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  #mutate(response = if_else(object_name == "other_emotion" & response> 75,NA,response))%>%
+  #subset(object_name!= "other_emotion")%>%
+  group_by(expression, posed_spoken)%>%
+  mutate(response = scale(response))%>%
+  ggplot(aes(expression, response, 
+             colour  = object_name,
+             shape = object_name))+
+  #geom_boxplot(aes(colour = object_name),  width = .1, position = position_dodge(1))+
+  #geom_point(aes(group = object_name), position = position_dodge(1), alpha = .1)+
+    stat_summary(geom = "pointrange",position = position_dodge(1))+
+  facet_grid(~posed_spoken)
+
+
+
+
+
+dta_scirep_all2$slider <- str_remove(dta_scirep_all2$object_name, "_slider")
+
+dta_scirep_all2$condition <- if_else(dta_scirep_all2$posed_spoken == "posed", "expression only", "emotive speech")
+
+dta_scirep_all2$condition<- factor(dta_scirep_all2$condition, levels = c("expression only", "emotive speech"))
+
+dta_scirep_all2$filename
+reviews$stiom_valid<-
+
+dta_scirep_all2%>%
+  #subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
+  # group_by(participant_private_id,expression, object_name, condition,slider)%>%
+  group_by(filename,expression, object_name, condition,slider)%>%  
+  
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  #mutate(response = if_else(object_name == "other_emotion" & response> 75,NA,response))%>%
+  subset(object_name!= "other_emotion")%>%
+  group_by(expression, condition)%>%
+  mutate(response = scale(response))%>%
+  ggplot(aes(expression, response, 
+             colour  = slider,
+             shape = slider))+
+  #geom_boxplot(aes(colour = object_name),  width = .1, position = position_dodge(1))+
+  geom_point(aes(group = slider), position = position_dodge(1), alpha = .1)+
+    stat_summary(geom = "pointrange",position = position_dodge(1), size = .6)+
+  facet_wrap(~condition, scale = "free_y")+
+  scale_color_brewer(palette = "Dark2")+
+  ylab("response (z)")+
+  p$graphstyle_int+
+  theme(axis.text.x = element_text(hjust = 1, angle =45),
+        legend.position = "top")
+
+
+reviews$stiom_valid
+
+ggsave("sm_stim_valid.tiff",
+       device = 'tiff', reviews$stiom_valid,
+       width = 10,
+       height = 6,
+       dpi = 300,
+       compression = "lzw")
+
+
+
+```
+
+
+
+# plot distributions
+
+outlier tests etc
+
+```{r}
+
+
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+
+dta_scirep_all
+
+dta_scirep_all2 %>%
+  filter(participant_public_id != "63e6378e04ade071ebf9ff9c") %>%
+  group_by(participant_private_id, expression, object_name, posed_spoken) %>%
+  summarise_if(is.numeric, mean, na.rm = TRUE) %>%
+  mutate(response = if_else(object_name == "other_emotion" & 
+                              response > 75, NA_real_, response)) %>%
+  #filter(object_name != "other_emotion") %>%
+  group_by(expression, posed_spoken) %>%
+  mutate(response = scale(response)) %>%
+  ggplot(aes(x = expression, y = response, colour = object_name, shape = object_name)) +
+    geom_violin(trim=FALSE,position = position_dodge(1))+
+  #geom_boxplot(width = 0.1, position = position_dodge(1)) +
+  stat_summary(aes(group = object_name), geom = "pointrange", position = position_dodge(1)) +
+  facet_wrap(~posed_spoken, nrow = 2) +
+  theme_minimal()
+
+
+colnames(dta_scirep_all2)
+unique(dta_scirep_all2$is_outlier)
+
+
+dta_scirep_all2 <- dta_scirep_all2 %>%
+  filter(!is.na(response)) %>%
+  group_by(expression, posed_spoken) %>%
+  mutate(
+    q_1 = quantile(response, 0.25, na.rm = TRUE),
+    q_3 = quantile(response, 0.75, na.rm = TRUE),
+    iqr =  q_3-q_1,
+    lower_bound = q_1 - 1 * iqr,
+    upper_bound = q_3 + 1 * iqr,
+    is_outlier = response < lower_bound | response > upper_bound
+  ) %>%
+  ungroup()
+
+unique(dta_scirep_all2$is_outlier)
+
+table(dta_scirep_all2$is_outlier)
+
+dta_scirep_all2$is_outlier2<-NULL
+dta_scirep_all2
+dta_scirep_all2%>%
+  subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
+  subset(participant_private_id !="13017685")%>%
+     # subset(is_outlier == FALSE)%>%
+  group_by(participant_private_id,expression, object_name, posed_spoken)%>%
+
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  ungroup()%>%
+  subset(posed_spoken == "posed")%>%
+  
+subset(object_name != "other_emotion")%>%
+  ggplot(aes(object_name, response, 
+             colour  = object_name))+
+    stat_summary(geom = "pointrange",
+                 position = position_dodge(1))+
+  facet_wrap(~expression, scales = "free_y")
+
+
+
+dta_scirep_all2%>%
+  subset(participant_public_id != "63e6378e04ade071ebf9ff9c")%>%
+  subset(participant_private_id !="13017685")%>%
+     # subset(is_outlier == FALSE)%>%
+  group_by(participant_private_id,expression, object_name, posed_spoken)%>%
+
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  ungroup()%>%
+  subset(posed_spoken != "posed")%>%
+  
+subset(object_name != "other_emotion")%>%
+  ggplot(aes(object_name, response, 
+             colour  = object_name))+
+    stat_summary(geom = "pointrange",
+                 position = position_dodge(1))+
+  facet_wrap(~expression, scales = "free_y")
+
+
+
+```
+
+load the test rf data
+
+```{r}
+#  dta_pos_cfmts_4_pca_test <- readRDS("~//Processeddata/dta_pos_cfmts_4_pca_test.rds")
+# > dta_spoken_cfmts_4_pca_test <- readRDS("~Processeddata/dta_spoken_cfmts_4_pca_test.rds")
+
+unique(dta_pos_cfmts_4_pca_test$filename)
+unique(dta_spoken_cfmts_4_pca_test$filename)
+
+dta_pos_cfmts_4_pca_test
+dta_spoken_cfmts_4_pca_test
+
+# bind expression only and emotive speech
+dta_rf_test_pos_spk<- bind_rows(dta_pos_cfmts_4_pca_test,
+          dta_spoken_cfmts_4_pca_test)
+
+# remove patterns to match the filename pattern in the behavioural data
+dta_rf_test_pos_spk$filename<- str_remove(dta_rf_test_pos_spk$filename,
+                                          "./")
+
+dta_rf_test_pos_spk$filename<- str_remove(dta_rf_test_pos_spk$filename,".csv")
+
+# check that we have the same filenames in rf and behavioural data
+setdiff(dta_rf_test_pos_spk$filename,dta_scirep_all2$filename)
+intersect(dta_rf_test_pos_spk$filename,dta_scirep_all2$filename)
+
+
+
+```
+
+# now create categorical ratings for emotion
+
+We will assign a category based on the maximum rating, we can ignore neutral in here since we are focusing on test set, and we already use other to make the rating difficult
+
+```{r}
+
+colnames(dta_scirep_all2)
+
+dta_scirep_all2<- dta_scirep_all2[,c(1:16)]
+
+# Specify the identifier columns – these are all columns you do not wish to pivot.
+id_vars <- c("participant_device_type", "participant_public_id", "participant_private_id", 
+             "spreadsheet", "display", "filename", 
+             "posed_spoken", "day", "subject", "expression",
+             "frame", "filename_mp4", "posed_spoken_1_2", 
+             "component_name", "object_name")
+
+
+# Pivot the data: each unique spreadsheet_expression becomes a new column
+
+dta_scirep_all_wd <- dta_scirep_all2 %>%
+  pivot_wider(
+    #id_cols = all_of(id_vars),
+    names_from = object_name,
+    values_from = response
+  )
+
+dta_scirep_all_wd
+
+# Create a new column 'max_expression' containing the expression with the highest response
+
+selected_cols<- c("happy_slider", "angry_slider", "sad_slider", "other_emotion")
+
+dta_scirep_all_wd <- dta_scirep_all_wd %>%
+  rowwise() %>%
+  mutate(max_expression_resp = {
+    values <- c_across(all_of(selected_cols))
+    selected_cols[which.max(values)]
+  }) %>%
+  ungroup()%>%
+    rowwise() %>%
+  mutate(max_expression_resp_n_oth = {
+    values <- c_across(all_of(selected_cols[1:3]))
+    selected_cols[1:3][which.max(values)]
+  }) %>%
+    ungroup()
+
+unique(dta_scirep_all_wd$max_expression_resp_n_oth)
+table(dta_scirep_all_wd$max_expression_resp)
+
+
+#aggregated across subjects
+
+
+dta_scirep_all_wd_by_vid<-  dta_scirep_all_wd%>%
+  group_by(display,
+  filename, posed_spoken,expression,day,subject,
+  filename_mp4, posed_spoken_1_2)%>%
+  summarise_if(is.numeric, mean, na.rm = T)%>%
+  ungroup()%>%
+#create emotion catgeory by video
+  rowwise() %>%
+  mutate(max_expression_resp = {
+    values <- c_across(all_of(selected_cols))
+    selected_cols[which.max(values)]
+  }) %>%
+  ungroup()%>%
+  rowwise() %>%
+  mutate(max_expression_resp_n_oth = {
+    values <- c_across(all_of(selected_cols[1:3]))
+    selected_cols[1:3][which.max(values)]
+  }) %>%
+    ungroup()
+
+dta_scirep_all_wd_by_vid$max_expression_resp
+dta_scirep_all_wd_by_vid$max_expression_resp_n_oth
+
+# now merge the nnf classification data with subject level perceptual data on the test set
+dta_scirep_all_wd
+dta_scirep_all_wd_by_sbj<- left_join(dta_scirep_all_wd, dta_rf_test_pos_spk,
+                                        by = c("filename", "expression"))
+
+
+
+# now merge the nmf classification data with subject aggregated  perceptual data on the test set
+
+dta_scirep_all_wd_by_vid
+
+
+dta_scirep_all_wd_by_vid<- left_join(dta_scirep_all_wd_by_vid, dta_rf_test_pos_spk, 
+                                       by = c("filename", "expression"))
+
+# keep just emotion name
+dta_scirep_all_wd_by_vid$max_expression_resp2<- sub("_.*", "",  dta_scirep_all_wd_by_vid$max_expression_resp)
+
+
+dta_scirep_all_wd_by_sbj$max_expression_resp2 <- sub("_.*", "",  dta_scirep_all_wd_by_sbj$max_expression_resp)
+
+
+dta_scirep_all_wd_by_vid$max_expression_resp_n_oth2<- sub("_.*", "",  dta_scirep_all_wd_by_vid$max_expression_resp_n_oth)
+
+
+dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth2 <- sub("_.*", "",  dta_scirep_all_wd_by_sbj$max_expression_resp_n_oth)
+
+
+
+
+
+
+dta_scirep_all_wd
+
+write_csv(dta_scirep_all_wd, "dta_scirep_all_wd.csv")
+
+
+
+dta_scirep_all_wd$max_expression_resp_n_oth
+
+
+
+
+```
+
+Now check correspondence of defined emotion categories and perceptual rating derived categories
+
+```{r}
+library(caret)
+# check correspondence
+
+options(scipen = 999)
+
+# check factors first
+dta_scirep_all_wd_by_vid$prediction<- factor(dta_scirep_all_wd_by_vid$prediction)
+
+dta_scirep_all_wd_by_vid$max_expression_resp2<- factor(dta_scirep_all_wd_by_vid$max_expression_resp2)
+
+
+dta_scirep_all_wd_by_sbj$max_expression_resp2<- factor(dta_scirep_all_wd_by_sbj$max_expression_resp2)
+
+
+dta_scirep_all_wd_by_sbj$prediction<- factor(dta_scirep_all_wd_by_sbj$prediction)
+
+
+
+```
+
